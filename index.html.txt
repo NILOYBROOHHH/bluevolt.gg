@@ -1,0 +1,3259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLUE VOLT — Digital Gaming Store</title>
+  <!-- Load Google Fonts and Tailwind CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Configure custom brand palette and typography tokens for Tailwind
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#EFF6FF',
+              100: '#DBEAFE',
+              400: '#60A5FA',
+              500: '#3B82F6',
+              600: '#1D70F5',
+              700: '#1558C8',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <!-- Load Supabase client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F4F7FC;
+      color: #0F172A;
+    }
+    .font-display {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    }
+    .hero-bg {
+      background: linear-gradient(120deg, #E8F1FF 0%, #F4F8FF 52%, #DCEBFF 100%);
+    }
+    .why-card-bg {
+      background: linear-gradient(160deg, #1E78FF 0%, #0D56D8 100%);
+    }
+    .soft-shadow {
+      box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    }
+    @keyframes voltFloat {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-7px);
+      }
+    }
+    @keyframes voltFloatSlow {
+      0%, 100% {
+        transform: translateY(0px) rotate(-12deg);
+      }
+      50% {
+        transform: translateY(-6px) rotate(-6deg);
+      }
+    }
+    @keyframes voltPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(29, 112, 245, 0.35);
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(29, 112, 245, 0);
+      }
+    }
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .anim-float {
+      animation: voltFloat 3.6s ease-in-out infinite;
+    }
+    .anim-float-badge {
+      animation: voltFloatSlow 3.2s ease-in-out infinite;
+    }
+    .anim-pulse {
+      animation: voltPulse 2.4s ease-in-out infinite;
+    }
+    .anim-pop-in {
+      animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#F4F7FC] text-slate-900">
+  <!-- Main application mount container -->
+  <div id="app" class="flex-1 flex flex-col w-full max-w-full overflow-x-hidden"></div>
+
+  <script>
+    const STORAGE_KEY = 'blue_volt_store_v1';
+    const FALLBACK_IMG = 'https://placehold.co/600x360/0F172A/E2E8F0?text=BLUE+VOLT';
+
+    // Crisp inline SVG logo & banner artwork for each digital gaming item
+    function buildItemLogoDataUri(bgStart, bgEnd, symbolType, accentColor) {
+      let glyph = '';
+      if (symbolType === 'nitro') {
+        glyph = `
+          <rect x="28" y="34" width="64" height="52" rx="16" fill="#FFFFFF" opacity="0.96"/>
+          <circle cx="48" cy="59" r="6.5" fill="${accentColor}"/>
+          <circle cx="72" cy="59" r="6.5" fill="${accentColor}"/>
+          <path d="M46 72 Q60 79 74 72" stroke="${accentColor}" stroke-width="4" stroke-linecap="round" fill="none"/>
+        `;
+      } else if (symbolType === 'boost') {
+        glyph = `
+          <path d="M60 24 L86 56 L68 56 L74 96 L38 60 L56 60 Z" fill="#FFFFFF"/>
+          <circle cx="90" cy="30" r="6" fill="#FDE047"/>
+        `;
+      } else if (symbolType === 'steam') {
+        glyph = `
+          <circle cx="60" cy="60" r="30" stroke="#FFFFFF" stroke-width="5" fill="none" opacity="0.9"/>
+          <circle cx="72" cy="48" r="10" fill="#FFFFFF"/>
+          <circle cx="46" cy="72" r="8" fill="#FFFFFF"/>
+          <path d="M52 66 L67 52" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+        `;
+      } else if (symbolType === 'blox') {
+        glyph = `
+          <circle cx="60" cy="62" r="24" fill="${accentColor}"/>
+          <path d="M60 38 C60 25, 73 21, 78 27 C69 29, 65 34, 65 39 Z" fill="#4ADE80"/>
+          <path d="M44 54 Q60 46 76 54" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.85"/>
+          <path d="M43 68 Q60 60 77 68" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.85"/>
+        `;
+      } else if (symbolType === 'valorant') {
+        glyph = `
+          <path d="M28 32 L57 88 L68 88 L39 32 Z" fill="#FFFFFF"/>
+          <path d="M64 32 L92 88 L81 88 L53 32 Z" fill="#FFFFFF" opacity="0.88"/>
+          <polygon points="62,32 92,32 76,62" fill="#FDA4AF"/>
+        `;
+      } else {
+        glyph = `
+          <polygon points="60,24 70,48 96,48 75,64 83,89 60,74 37,89 45,64 24,48 50,48" fill="#FFFFFF"/>
+        `;
+      }
+
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${bgStart}"/><stop offset="100%" stop-color="${bgEnd}"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(#g)"/>${glyph}</svg>`;
+      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
+    function buildItemBannerDataUri(bgStart, bgEnd, symbolType, accentColor, labelText) {
+      const badgeUri = buildItemLogoDataUri(bgStart, bgEnd, symbolType, accentColor);
+      const rawSvg = badgeUri.replace('data:image/svg+xml;utf8,', '');
+      const decoded = decodeURIComponent(rawSvg);
+      const inner = decoded
+        .replace(/^<svg[^>]*>/, '')
+        .replace(/<\/svg>$/, '');
+      const bannerSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${bgStart}"/><stop offset="100%" stop-color="${bgEnd}"/></linearGradient></defs><rect width="600" height="360" fill="url(#bg)"/><circle cx="510" cy="68" r="110" fill="#FFFFFF" opacity="0.06"/><circle cx="95" cy="310" r="130" fill="#FFFFFF" opacity="0.06"/><g transform="translate(240, 82)">${inner}</g><text x="300" y="252" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="24" font-weight="800" letter-spacing="0.5">${labelText}</text></svg>`;
+      return `data:image/svg+xml;utf8,${encodeURIComponent(bannerSvg)}`;
+    }
+
+    const ITEM_LOGOS = {
+      nitro: buildItemLogoDataUri('#5865F2', '#7983F5', 'nitro', '#5865F2'),
+      boost: buildItemLogoDataUri('#7C3AED', '#C026D3', 'boost', '#FDE047'),
+      steam: buildItemLogoDataUri('#1B2838', '#2A475E', 'steam', '#66C0F4'),
+      blox: buildItemLogoDataUri('#0284C7', '#0369A1', 'blox', '#38BDF8'),
+      valorant: buildItemLogoDataUri('#E11D48', '#9F1239', 'valorant', '#FDA4AF'),
+      nitroBasic: buildItemLogoDataUri('#4338CA', '#6366F1', 'nitroBasic', '#C7D2FE'),
+    };
+
+    const ITEM_BANNERS = {
+      nitro: buildItemBannerDataUri('#31387A', '#5865F2', 'nitro', '#5865F2', 'DISCORD NITRO'),
+      boost: buildItemBannerDataUri('#4C1D95', '#9333EA', 'boost', '#FDE047', '14X SERVER BOOSTS'),
+      steam: buildItemBannerDataUri('#111827', '#1E3A5F', 'steam', '#66C0F4', 'STEAM WALLET CODE'),
+      blox: buildItemBannerDataUri('#082F49', '#0284C7', 'blox', '#38BDF8', 'BLOX FRUITS PACK'),
+      valorant: buildItemBannerDataUri('#4C0519', '#E11D48', 'valorant', '#FDA4AF', 'VALORANT POINTS'),
+      nitroBasic: buildItemBannerDataUri('#1E1B4B', '#4F46E5', 'nitroBasic', '#C7D2FE', 'DISCORD NITRO BASIC'),
+    };
+
+    // Default initial state including Robux calculator, Discord items, manual payments, orders, and RBAC
+    const DEFAULT_STATE = {
+      activeRoute: 'home',
+      selectedCategory: 'All',
+      selectedProductId: 'prod-discord-nitro',
+      searchQuery: '',
+      activeAdminTab: 'dashboard',
+      activeRole: 'owner',
+      viewMode: 'responsive',
+      quickMenuOpen: false,
+      authModal: null,
+      supabaseModalOpen: false,
+      supabaseUrl: '',
+      supabaseAnonKey: '',
+      currentUser: null,
+      toast: null,
+      nowTick: Date.now(),
+      cart: [],
+      robux: {
+        ratePerRobux: 0.72,
+        robuxStock: 24500,
+        lowStockThreshold: 5000,
+        forceOutOfStock: false,
+        restockAt: '',
+        packages: [
+          { robux: 400 },
+          { robux: 800 },
+          { robux: 1700 },
+          { robux: 4500 },
+          { robux: 10000 },
+        ],
+        history: [
+          {
+            id: 'rh-init',
+            oldRate: 0.75,
+            newRate: 0.72,
+            changedBy: 'owner@bluevolt.bd',
+            changedAt: '2026-11-18 14:20',
+          },
+        ],
+      },
+      products: [
+        {
+          id: 'prod-discord-nitro',
+          title: 'Discord Nitro (1 Month)',
+          category: 'Discord Items',
+          priceBdt: 650,
+          stockQuantity: 28,
+          lowStockThreshold: 5,
+          ratingCount: 412,
+          logoUrl: ITEM_LOGOS.nitro,
+          imageUrl: ITEM_BANNERS.nitro,
+          description: 'HD streaming, custom emojis anywhere, larger uploads, and 2 server boosts.',
+          isActive: true,
+          isFeatured: true,
+          requiresRobloxUsername: false,
+          requiresDiscordTag: true,
+        },
+        {
+          id: 'prod-discord-boosts',
+          title: '14x Discord Server Boosts (1M)',
+          category: 'Discord Items',
+          priceBdt: 1150,
+          stockQuantity: 14,
+          lowStockThreshold: 4,
+          ratingCount: 198,
+          logoUrl: ITEM_LOGOS.boost,
+          imageUrl: ITEM_BANNERS.boost,
+          description: 'Unlock Level 3 perks including custom server invite URL, 1080p 60fps Go Live, and stage seats.',
+          isActive: true,
+          isFeatured: true,
+          requiresRobloxUsername: false,
+          requiresDiscordTag: true,
+        },
+        {
+          id: 'prod-steam-500',
+          title: 'Steam Wallet Code — 500 BDT',
+          category: 'Gift Cards',
+          priceBdt: 530,
+          stockQuantity: 20,
+          lowStockThreshold: 5,
+          ratingCount: 329,
+          logoUrl: ITEM_LOGOS.steam,
+          imageUrl: ITEM_BANNERS.steam,
+          description: 'Digital Steam code redeemable on Bangladeshi and global accounts.',
+          isActive: true,
+          isFeatured: true,
+          requiresRobloxUsername: false,
+          requiresDiscordTag: false,
+        },
+        {
+          id: 'prod-blox-fruit',
+          title: 'Blox Fruits Permanent Fruit Pack',
+          category: 'In-Game Items',
+          priceBdt: 980,
+          stockQuantity: 9,
+          lowStockThreshold: 3,
+          ratingCount: 274,
+          logoUrl: ITEM_LOGOS.blox,
+          imageUrl: ITEM_BANNERS.blox,
+          description: 'Fast in-game trading or gifting delivery for Roblox players.',
+          isActive: true,
+          isFeatured: true,
+          requiresRobloxUsername: true,
+          requiresDiscordTag: false,
+        },
+        {
+          id: 'prod-valorant-vp',
+          title: 'Valorant Points Bundle (1,000 VP)',
+          category: 'Game Accounts',
+          priceBdt: 890,
+          stockQuantity: 12,
+          lowStockThreshold: 3,
+          ratingCount: 165,
+          logoUrl: ITEM_LOGOS.valorant,
+          imageUrl: ITEM_BANNERS.valorant,
+          description: 'Top up VP for weapon skins and battle passes with manual verification.',
+          isActive: true,
+          isFeatured: true,
+          requiresRobloxUsername: false,
+          requiresDiscordTag: false,
+        },
+        {
+          id: 'prod-discord-nitro-basic',
+          title: 'Discord Nitro Basic (1 Month)',
+          category: 'Discord Items',
+          priceBdt: 320,
+          stockQuantity: 35,
+          lowStockThreshold: 5,
+          ratingCount: 221,
+          logoUrl: ITEM_LOGOS.nitroBasic,
+          imageUrl: ITEM_BANNERS.nitroBasic,
+          description: 'Custom emojis, stickers, and up to 50MB file uploads.',
+          isActive: true,
+          isFeatured: false,
+          requiresRobloxUsername: false,
+          requiresDiscordTag: true,
+        },
+      ],
+      paymentMethods: [
+        {
+          id: 'pm-bkash',
+          name: 'bKash',
+          badgeText: 'bKash',
+          badgeBg: '#E2136E',
+          accountType: 'Personal',
+          receivingNumber: '01700-000111',
+          instructionNote: 'Send Money to the bKash Personal number above and enter your TrxID + last 4 digits.',
+          isEnabled: true,
+        },
+        {
+          id: 'pm-nagad',
+          name: 'Nagad',
+          badgeText: 'Nagad',
+          badgeBg: '#F15A22',
+          accountType: 'Personal',
+          receivingNumber: '01800-000222',
+          instructionNote: 'Send Money to the Nagad Personal number above and submit your TrxID.',
+          isEnabled: true,
+        },
+        {
+          id: 'pm-upay',
+          name: 'Upay',
+          badgeText: 'Upay',
+          badgeBg: '#D97706',
+          accountType: 'Personal',
+          receivingNumber: '01900-000333',
+          instructionNote: 'Send Money via Upay and provide the exact Transaction ID.',
+          isEnabled: true,
+        },
+        {
+          id: 'pm-rocket',
+          name: 'Rocket',
+          badgeText: 'Rocket',
+          badgeBg: '#8B3DFF',
+          accountType: 'Personal',
+          receivingNumber: '01600-000444',
+          instructionNote: 'Send Money via Rocket and submit your TrxID and sender last 4 digits.',
+          isEnabled: true,
+        },
+      ],
+      orders: [
+        {
+          id: 'ord-1001',
+          orderNumber: 'BV-8A92K1M0',
+          customerEmail: 'player1@bluevolt.bd',
+          itemType: 'robux',
+          productId: null,
+          itemTitle: '800 Robux Top-Up',
+          quantity: 800,
+          unitRateBdt: 0.72,
+          totalAmountBdt: 576,
+          paymentMethodId: 'pm-bkash',
+          paymentMethodName: 'bKash',
+          trxId: '8BK92L10PQ',
+          senderLast4: '4821',
+          robloxUsername: 'VoltRunnerBD',
+          discordUsername: null,
+          status: 'Completed',
+          internalNote: 'Verified and delivered.',
+          createdAt: '2026-11-20 19:15',
+        },
+        {
+          id: 'ord-1002',
+          orderNumber: 'BV-3M74P9X2',
+          customerEmail: 'nitrofan@bluevolt.bd',
+          itemType: 'product',
+          productId: 'prod-discord-nitro',
+          itemTitle: 'Discord Nitro (1 Month)',
+          quantity: 1,
+          unitRateBdt: 650,
+          totalAmountBdt: 650,
+          paymentMethodId: 'pm-nagad',
+          paymentMethodName: 'Nagad',
+          trxId: 'NG4410ZX98',
+          senderLast4: '9034',
+          robloxUsername: null,
+          discordUsername: 'volt_user#0',
+          status: 'Pending',
+          internalNote: '',
+          createdAt: '2026-11-20 23:42',
+        },
+      ],
+      users: [
+        { id: 'u-owner', email: 'owner@bluevolt.bd', fullName: 'Store Owner', roles: ['owner'] },
+        { id: 'u-admin', email: 'admin@bluevolt.bd', fullName: 'Lead Admin', roles: ['admin'] },
+        { id: 'u-stock', email: 'stock@bluevolt.bd', fullName: 'Stock Manager', roles: ['stock_manager'] },
+        { id: 'u-order', email: 'orders@bluevolt.bd', fullName: 'Order Manager', roles: ['order_manager'] },
+      ],
+      exclusiveOwnerOnlyMe: true,
+      exclusiveOwnerEmail: 'owner@bluevolt.bd',
+    };
+
+    let supabaseClient = null;
+    let toastTimeout = null;
+
+    // Load persisted state from localStorage with safe fallback
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        const parsed = JSON.parse(raw);
+        const mergedProducts =
+          Array.isArray(parsed.products) && parsed.products.length
+            ? parsed.products.map((prod) => {
+                const def = DEFAULT_STATE.products.find((d) => d.id === prod.id);
+                const hasCustomUrl =
+                  prod.logoUrl &&
+                  typeof prod.logoUrl === 'string' &&
+                  !prod.logoUrl.includes('placehold.co');
+                const hasCustomBanner =
+                  prod.imageUrl &&
+                  typeof prod.imageUrl === 'string' &&
+                  !prod.imageUrl.includes('placehold.co');
+                return {
+                  ...prod,
+                  logoUrl: hasCustomUrl ? prod.logoUrl : (def ? def.logoUrl : ITEM_LOGOS.nitroBasic),
+                  imageUrl: hasCustomBanner ? prod.imageUrl : (def ? def.imageUrl : ITEM_BANNERS.nitroBasic),
+                };
+              })
+            : DEFAULT_STATE.products;
+        return {
+          ...JSON.parse(JSON.stringify(DEFAULT_STATE)),
+          ...parsed,
+          robux: {
+            ...JSON.parse(JSON.stringify(DEFAULT_STATE.robux)),
+            ...(parsed.robux || {}),
+          },
+          products: mergedProducts,
+          paymentMethods:
+            Array.isArray(parsed.paymentMethods) && parsed.paymentMethods.length
+              ? parsed.paymentMethods
+              : DEFAULT_STATE.paymentMethods,
+          orders: Array.isArray(parsed.orders) ? parsed.orders : DEFAULT_STATE.orders,
+          users: Array.isArray(parsed.users) && parsed.users.length ? parsed.users : DEFAULT_STATE.users,
+          cart: Array.isArray(parsed.cart) ? parsed.cart : [],
+        };
+      } catch (err) {
+        console.error('Failed to load state:', err);
+        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+      }
+    }
+
+    let state = loadState();
+
+    // Persist state changes to localStorage
+    function saveState() {
+      try {
+        const toSave = { ...state, toast: null, quickMenuOpen: false };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+      } catch (err) {
+        console.error('Failed to save state:', err);
+      }
+    }
+
+    // Initialize Supabase client when URL and Anon Key are provided
+    function initSupabaseIfConfigured() {
+      try {
+        if (state.supabaseUrl && state.supabaseAnonKey && window.supabase && typeof window.supabase.createClient === 'function') {
+          supabaseClient = window.supabase.createClient(state.supabaseUrl, state.supabaseAnonKey);
+        } else {
+          supabaseClient = null;
+        }
+      } catch (err) {
+        console.error('Supabase init error:', err);
+        supabaseClient = null;
+      }
+    }
+
+    initSupabaseIfConfigured();
+
+    // Show non-blocking notification toast
+    function showToast(message, type = 'success') {
+      state.toast = { message, type };
+      render();
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        state.toast = null;
+        render();
+      }, 3200);
+    }
+
+    // Format numeric amounts into Bangladeshi Taka (BDT)
+    function formatBDT(amount) {
+      const num = Number(amount || 0);
+      const formatted = Number.isInteger(num) ? num.toLocaleString('en-US') : num.toFixed(2);
+      return `৳${formatted}`;
+    }
+
+    // Compute current Robux availability status
+    function getRobuxStockStatus() {
+      const stock = Number(state.robux.robuxStock || 0);
+      const lowThreshold = Number(state.robux.lowStockThreshold || 0);
+      if (state.robux.forceOutOfStock || stock <= 0) {
+        return { available: false, label: 'Out of stock', tone: 'rose' };
+      }
+      if (stock <= lowThreshold) {
+        return { available: true, label: 'Low stock', tone: 'amber' };
+      }
+      return { available: true, label: 'In stock', tone: 'emerald' };
+    }
+
+    // Format countdown string until configured restock timestamp
+    function getRestockCountdownText() {
+      if (!state.robux.restockAt) return '';
+      const target = new Date(state.robux.restockAt).getTime();
+      if (!Number.isFinite(target)) return '';
+      const diffMs = target - (state.nowTick || Date.now());
+      if (diffMs <= 0) return 'Restocking Soon';
+      const totalSec = Math.floor(diffMs / 1000);
+      const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+      const secs = String(totalSec % 60).padStart(2, '0');
+      return `${hrs}h : ${mins}m : ${secs}s`;
+    }
+
+    function getCartCount() {
+      return state.cart.reduce((sum, item) => sum + (item.itemType === 'robux' ? 1 : Number(item.quantity || 1)), 0);
+    }
+
+    function getCartTotalBDT() {
+      return state.cart.reduce((sum, item) => sum + Math.round(Number(item.unitPriceBdt) * Number(item.quantity)), 0);
+    }
+
+    function addToCart(newItem) {
+      const existing = state.cart.find((i) => i.key === newItem.key);
+      if (existing && newItem.itemType !== 'robux') {
+        existing.quantity = Number(existing.quantity) + Number(newItem.quantity || 1);
+      } else {
+        state.cart.push(newItem);
+      }
+      saveState();
+      showToast(`${newItem.title} added to cart!`, 'success');
+      render();
+    }
+
+    function removeFromCart(key) {
+      state.cart = state.cart.filter((i) => i.key !== key);
+      saveState();
+      render();
+    }
+
+    // Role-based access control helpers
+    function canAccessAdminTab(tab) {
+      const role = state.activeRole;
+      if (role === 'owner' || role === 'admin') return true;
+      if (role === 'stock_manager') return tab === 'stock' || tab === 'marketplace';
+      if (role === 'order_manager') return tab === 'orders';
+      return false;
+    }
+
+    function getAllowedAdminTabsForCurrentRole() {
+      const allTabs = [
+        { id: 'dashboard', label: '📊 Dashboard' },
+        { id: 'orders', label: '📦 Orders' },
+        { id: 'marketplace', label: '🛍️ Marketplace' },
+        { id: 'stock', label: '📦 Stock & Restock' },
+        { id: 'payments', label: '💳 Payment Methods' },
+        { id: 'robux', label: '💎 Robux Rate' },
+        { id: 'roles', label: '🛡️ Users & Roles' },
+      ];
+      return allTabs.filter((t) => canAccessAdminTab(t.id));
+    }
+
+    function canManagePaymentNumbers() {
+      return state.activeRole === 'owner';
+    }
+
+    function canAssignRoles() {
+      return state.activeRole === 'owner' || state.activeRole === 'admin';
+    }
+
+    function isCurrentUserAuthorizedOwner() {
+      const authorizedEmail = (state.exclusiveOwnerEmail || 'owner@bluevolt.bd').trim().toLowerCase();
+      if (!state.currentUser || !state.currentUser.email) {
+        return state.activeRole === 'owner';
+      }
+      return state.currentUser.email.trim().toLowerCase() === authorizedEmail;
+    }
+
+    function canReceiveOwnerRole(targetEmail) {
+      if (!state.exclusiveOwnerOnlyMe) return true;
+      const authorizedEmail = (state.exclusiveOwnerEmail || 'owner@bluevolt.bd').trim().toLowerCase();
+      return String(targetEmail || '').trim().toLowerCase() === authorizedEmail;
+    }
+
+    function getAvailableRolesToAssign() {
+      if (state.activeRole === 'owner') {
+        const canGiveOwner = !state.exclusiveOwnerOnlyMe || isCurrentUserAuthorizedOwner();
+        return canGiveOwner
+          ? ['owner', 'admin', 'stock_manager', 'order_manager']
+          : ['admin', 'stock_manager', 'order_manager'];
+      }
+      if (state.activeRole === 'admin') {
+        return ['admin', 'stock_manager', 'order_manager'];
+      }
+      return [];
+    }
+
+    // Navigation helper
+    function navigate(route, params = {}) {
+      state.activeRoute = route;
+      state.quickMenuOpen = false;
+      if (params.category) state.selectedCategory = params.category;
+      if (params.productId) state.selectedProductId = params.productId;
+      if (route === 'admin') {
+        const staffRoles = ['owner', 'admin', 'stock_manager', 'order_manager'];
+        if (!staffRoles.includes(state.activeRole)) {
+          state.activeRole = 'owner';
+        }
+        if (!canAccessAdminTab(state.activeAdminTab)) {
+          const allowed = getAllowedAdminTabsForCurrentRole();
+          if (allowed.length) state.activeAdminTab = allowed[0].id;
+        }
+      }
+      saveState();
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Top navigation bar with search, cart counter, auth, and three-dots quick menu
+    function renderNavbar() {
+      try {
+        const isPcMode = state.viewMode === 'pc';
+        const navItems = [
+          { id: 'home', label: 'Home', icon: '🏠' },
+          { id: 'robux', label: 'Robux', icon: '❖' },
+          { id: 'discord', label: 'Discord Items', icon: '👾' },
+          { id: 'marketplace', label: 'Marketplace', icon: '🛒' },
+          { id: 'support', label: 'Support', icon: '💬' },
+        ];
+
+        return `
+          <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200/80">
+            <div class="max-w-[1280px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-6 shrink-0">
+              <div class="flex items-center gap-6 shrink-0">
+                <button type="button" onclick="navigate('home')" class="flex items-center gap-2.5 text-left group">
+                  <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-sm group-hover:bg-brand-700 anim-pulse transition duration-200">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
+                    </svg>
+                  </div>
+                  <span class="font-display font-extrabold text-[19px] tracking-tight text-slate-950">BLUE VOLT</span>
+                </button>
+
+                <nav class="${isPcMode ? 'flex' : 'hidden lg:flex'} items-center gap-1">
+                  ${navItems.map((item) => {
+                    const active = state.activeRoute === item.id;
+                    return `
+                      <button
+                        type="button"
+                        onclick="navigate('${item.id}')"
+                        class="px-3.5 py-2 rounded-full text-[13.5px] font-semibold flex items-center gap-1.5 transition ${
+                          active
+                            ? 'bg-brand-50 text-brand-600'
+                            : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+                        }"
+                      >
+                        <span class="text-xs">${item.icon}</span>
+                        <span>${item.label}</span>
+                      </button>
+                    `;
+                  }).join('')}
+                  <button
+                    type="button"
+                    onclick="navigate('orders')"
+                    class="px-3 py-2 rounded-full text-[13px] font-semibold flex items-center gap-1 transition ${
+                      state.activeRoute === 'orders' ? 'bg-brand-50 text-brand-600' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+                    }"
+                  >
+                    <span>📦</span>
+                    <span>Orders</span>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="navigate('admin')"
+                    class="px-3 py-2 rounded-full text-[13px] font-semibold flex items-center gap-1 transition ${
+                      state.activeRoute === 'admin' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100/70'
+                    }"
+                  >
+                    <span>🛡️</span>
+                    <span>Admin</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div class="flex items-center gap-2.5 flex-1 max-w-md justify-end">
+                <div class="relative flex-1 ${isPcMode ? 'max-w-[230px]' : 'max-w-[160px] sm:max-w-[230px]'}">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                  <input
+                    type="text"
+                    value="${escapeHtml(state.searchQuery)}"
+                    oninput="handleSearchInput(this.value)"
+                    placeholder="Search products..."
+                    class="w-full h-9 pl-8 pr-3 rounded-full bg-[#F4F7FC] border border-slate-200/80 text-[12.5px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-brand-500 focus:bg-white transition"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onclick="navigate('checkout')"
+                  aria-label="Cart"
+                  class="relative w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200/80 flex items-center justify-center text-slate-800 transition shrink-0"
+                >
+                  <span class="text-sm">🛒</span>
+                  <span class="min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center -top-1 -right-1 absolute">
+                    ${getCartCount()}
+                  </span>
+                </button>
+
+                ${
+                  state.currentUser
+                    ? `
+                      <button
+                        type="button"
+                        onclick="logoutUser()"
+                        class="h-9 px-3 rounded-full border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700 shrink-0"
+                      >
+                        Logout
+                      </button>
+                    `
+                    : `
+                      <button
+                        type="button"
+                        onclick="openAuthModal('login')"
+                        class="h-9 px-3.5 rounded-full border border-brand-600/30 bg-brand-50/70 hover:bg-brand-100 text-brand-600 font-semibold text-[12.5px] shrink-0 transition"
+                      >
+                        Login/Sign Up
+                      </button>
+                    `
+                }
+
+                <div class="relative">
+                  <button
+                    type="button"
+                    onclick="toggleQuickMenu()"
+                    aria-label="More options"
+                    title="More options"
+                    class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200/80 flex items-center justify-center text-slate-800 transition"
+                  >
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="5" r="2.2" />
+                      <circle cx="12" cy="12" r="2.2" />
+                      <circle cx="12" cy="19" r="2.2" />
+                    </svg>
+                  </button>
+
+                  ${
+                    state.quickMenuOpen
+                      ? `
+                        <div class="absolute right-0 mt-2 w-52 rounded-2xl bg-white border border-slate-200/90 shadow-xl py-1.5 z-50 text-xs anim-pop-in">
+                          <button
+                            type="button"
+                            onclick="navigate('discord')"
+                            class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-[#F4F7FC] font-semibold flex items-center gap-2"
+                          >
+                            <span>👾</span>
+                            <span>Discord Items</span>
+                          </button>
+                          <button
+                            type="button"
+                            onclick="navigate('orders')"
+                            class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-[#F4F7FC] font-semibold flex items-center gap-2"
+                          >
+                            <span>📦</span>
+                            <span>Order History</span>
+                          </button>
+                          <button
+                            type="button"
+                            onclick="navigate('admin')"
+                            class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-[#F4F7FC] font-semibold flex items-center gap-2"
+                          >
+                            <span>🛡️</span>
+                            <span>Admin Panel</span>
+                          </button>
+                          <button
+                            type="button"
+                            onclick="toggleViewMode(); state.quickMenuOpen = false; render();"
+                            class="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-[#F4F7FC] font-semibold flex items-center gap-2"
+                          >
+                            <span>${!isPcMode ? '🖥️' : '📱'}</span>
+                            <span>${!isPcMode ? 'Switch to PC View' : 'Switch to Mobile View'}</span>
+                          </button>
+                          <div class="my-1 border-t border-slate-100"></div>
+                          <button
+                            type="button"
+                            onclick="state.quickMenuOpen = false; openSupabaseModal();"
+                            class="w-full px-3.5 py-2 text-left text-slate-600 hover:bg-[#F4F7FC] font-semibold flex items-center gap-2"
+                          >
+                            <span>⚙️</span>
+                            <span>Supabase Config</span>
+                          </button>
+                        </div>
+                      `
+                      : ''
+                  }
+                </div>
+              </div>
+            </div>
+
+            ${
+              !isPcMode
+                ? `
+                  <div class="flex lg:hidden items-center gap-1.5 px-4 pb-2.5 overflow-x-auto border-t border-slate-100 pt-2">
+                    ${navItems.map((item) => `
+                      <button
+                        type="button"
+                        onclick="navigate('${item.id}')"
+                        class="px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${
+                          state.activeRoute === item.id ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
+                        }"
+                      >
+                        ${item.icon} ${item.label}
+                      </button>
+                    `).join('')}
+                    <button
+                      type="button"
+                      onclick="navigate('orders')"
+                      class="px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${
+                        state.activeRoute === 'orders' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-700'
+                      }"
+                    >
+                      📦 Orders
+                    </button>
+                    <button
+                      type="button"
+                      onclick="navigate('admin')"
+                      class="px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${
+                        state.activeRoute === 'admin' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                      }"
+                    >
+                      🛡️ Admin
+                    </button>
+                  </div>
+                `
+                : ''
+            }
+          </header>
+        `;
+      } catch (err) {
+        console.error('Navbar render error:', err);
+        return '';
+      }
+    }
+
+    // Home storefront view
+    function renderHomePage() {
+      const featured = state.products.filter((p) => p.isActive).slice(0, 5);
+      const stockStatus = getRobuxStockStatus();
+      const countdown = getRestockCountdownText();
+      const isPcMode = state.viewMode === 'pc';
+
+      return `
+        <main class="max-w-[1280px] w-full mx-auto px-4 sm:px-6 pt-5 pb-12 space-y-6">
+          <section class="hero-bg relative rounded-[24px] border border-white/80 soft-shadow overflow-hidden">
+            <div class="grid ${isPcMode ? 'grid-cols-12' : 'grid-cols-1 lg:grid-cols-12'} gap-6 items-center p-6 sm:p-8 lg:p-10">
+              <div class="${isPcMode ? 'col-span-5' : 'lg:col-span-5'} space-y-4 z-10">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-blue-200/80 text-[12px] font-semibold text-slate-800 shadow-xs">
+                  <span class="text-brand-600">⚡</span>
+                  <span>Fast • Secure • Trusted</span>
+                </div>
+
+                <h1 class="font-display font-extrabold text-[38px] sm:text-[46px] leading-[1.06] tracking-tight text-slate-950">
+                  Get Your Robux<br/>
+                  <span class="text-brand-600">Instantly!</span>
+                </h1>
+
+                <p class="text-[15px] text-slate-700 font-medium max-w-md leading-relaxed">
+                  Top up Robux, Discord Nitro & more digital products at the best price in Bangladesh 🇧🇩
+                </p>
+
+                <div class="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onclick="navigate('robux')"
+                    class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-[14px] shadow-md shadow-brand-600/20 transition"
+                  >
+                    <span>Shop Now</span>
+                    <span>→</span>
+                  </button>
+                  <button
+                    type="button"
+                    onclick="navigate('discord')"
+                    class="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white/90 hover:bg-white text-indigo-700 border border-indigo-200 font-semibold text-[13.5px] shadow-xs transition"
+                  >
+                    <span>👾</span>
+                    <span>Discord Items</span>
+                  </button>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    stockStatus.tone === 'emerald'
+                      ? 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/25'
+                      : stockStatus.tone === 'amber'
+                      ? 'bg-amber-500/15 text-amber-900 border border-amber-500/25'
+                      : 'bg-rose-500/15 text-rose-800 border border-rose-500/25'
+                  }">
+                    <span class="w-2 h-2 rounded-full ${
+                      stockStatus.tone === 'emerald' ? 'bg-emerald-500' : stockStatus.tone === 'amber' ? 'bg-amber-500' : 'bg-rose-500'
+                    }"></span>
+                    Robux: ${stockStatus.label}
+                  </span>
+                </div>
+
+                ${
+                  countdown
+                    ? `<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-semibold">
+                        <span>⏱️</span>
+                        <span>Next Restock Timer: <strong class="font-mono text-amber-300">${countdown}</strong></span>
+                      </div>`
+                    : ''
+                }
+              </div>
+
+              <div class="${isPcMode ? 'col-span-3' : 'lg:col-span-3'} flex justify-center relative min-h-[210px] sm:min-h-[250px] items-center">
+                <div class="absolute -top-2 left-4 sm:left-2 w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 border-2 border-amber-100 shadow-lg flex items-center justify-center font-display font-extrabold text-amber-950 text-lg -rotate-12 anim-float-badge">
+                  R$
+                </div>
+                <div class="absolute top-6 right-2 sm:right-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 border-2 border-white/80 shadow-lg flex items-center justify-center text-white font-bold rotate-12 anim-float">
+                  👾
+                </div>
+                <div class="w-44 h-44 sm:w-52 sm:h-52 rounded-[32px] bg-gradient-to-b from-white/85 to-blue-100/80 border border-white shadow-xl flex flex-col items-center justify-center relative overflow-hidden anim-float">
+                  <div class="w-24 h-24 rounded-2xl bg-[#D99B66] border-2 border-amber-200 shadow-inner flex flex-col items-center justify-center">
+                    <div class="flex gap-3 mb-1">
+                      <span class="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+                      <span class="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+                    </div>
+                    <div class="w-6 h-1.5 rounded-full bg-amber-900/60"></div>
+                  </div>
+                  <div class="w-32 h-16 mt-1.5 rounded-t-2xl bg-slate-900 flex items-center justify-center">
+                    <span class="w-6 h-6 rotate-45 border-2 border-sky-400 bg-sky-400/20"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="${isPcMode ? 'col-span-4' : 'lg:col-span-4'} z-10">
+                <div class="bg-white/95 backdrop-blur rounded-[20px] p-4 sm:p-5 border border-white shadow-lg">
+                  <div class="flex items-center justify-between mb-3.5">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">❖</span>
+                      <h2 class="font-display font-bold text-[16px] text-slate-950">Robux Packages</h2>
+                    </div>
+                    <span class="text-[11px] font-semibold text-slate-500">Rate: ${formatBDT(state.robux.ratePerRobux)}/R$</span>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2.5 mb-3">
+                    ${state.robux.packages.slice(0, 4).map((pkg) => {
+                      const calcPrice = Math.round(pkg.robux * Number(state.robux.ratePerRobux));
+                      return `
+                        <button
+                          type="button"
+                          onclick="quickSelectRobux(${pkg.robux})"
+                          class="group rounded-xl bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200/80 hover:border-brand-500/50 p-3 text-center transition"
+                        >
+                          <div class="font-display font-bold text-[14px] text-slate-900 group-hover:text-brand-700">
+                            ${pkg.robux.toLocaleString('en-US')} Robux
+                          </div>
+                          <div class="font-display font-bold text-[14px] text-brand-600 mt-0.5">
+                            ${formatBDT(calcPrice)}
+                          </div>
+                        </button>
+                      `;
+                    }).join('')}
+                  </div>
+
+                  <button
+                    type="button"
+                    onclick="navigate('robux')"
+                    class="w-full py-2.5 px-4 rounded-xl bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200/80 hover:border-brand-500/50 text-slate-900 font-semibold text-[13px] flex items-center justify-center gap-2 transition"
+                  >
+                    <span>🧮</span>
+                    <span>Custom Amount</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid ${isPcMode ? 'grid-cols-6' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'} gap-3.5">
+            ${[
+              { title: 'Robux Top Up', sub: '', icon: '❖', iconBg: 'bg-sky-50 text-brand-600', action: "navigate('robux')" },
+              { title: 'Discord Items', sub: 'Nitro & Boosts', icon: '👾', iconBg: 'bg-indigo-50 text-indigo-600', action: "navigate('discord')" },
+              { title: 'Game Accounts', sub: '& Items', icon: '🎮', iconBg: 'bg-purple-50 text-purple-600', action: "navigate('marketplace', { category: 'Game Accounts' })" },
+              { title: 'Gift Cards', sub: '(PSN, Xbox, Steam)', icon: '🎁', iconBg: 'bg-blue-50 text-blue-600', action: "navigate('marketplace', { category: 'Gift Cards' })" },
+              { title: 'In-Game Items', sub: '& More', icon: '💎', iconBg: 'bg-cyan-50 text-cyan-600', action: "navigate('marketplace', { category: 'In-Game Items' })" },
+              { title: '100% Secure', sub: '& Reliable', icon: '🛡️', iconBg: 'bg-emerald-50 text-emerald-600', action: "navigate('support')" },
+            ].map((cat) => `
+              <button
+                type="button"
+                onclick="${cat.action}"
+                class="bg-white hover:border-brand-500/40 hover:-translate-y-0.5 border border-slate-200/75 rounded-[18px] p-4 flex items-center gap-3 text-left soft-shadow transition duration-200 group"
+              >
+                <div class="w-10 h-10 rounded-xl ${cat.iconBg} flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition duration-200">
+                  ${cat.icon}
+                </div>
+                <div class="min-w-0">
+                  <div class="font-display font-bold text-[13.5px] text-slate-900 leading-snug">${cat.title}</div>
+                  ${cat.sub ? `<div class="text-[11.5px] text-slate-500 leading-snug">${cat.sub}</div>` : ''}
+                </div>
+              </button>
+            `).join('')}
+          </section>
+
+          <section class="grid ${isPcMode ? 'grid-cols-12' : 'grid-cols-1 lg:grid-cols-12'} gap-5 items-stretch">
+            <div class="${isPcMode ? 'col-span-9' : 'lg:col-span-9'} flex flex-col">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-brand-600 text-lg">★</span>
+                  <h2 class="font-display font-bold text-[21px] text-slate-950 tracking-tight">Featured Products</h2>
+                </div>
+                <button
+                  type="button"
+                  onclick="navigate('marketplace', { category: 'All' })"
+                  class="text-[13px] font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1"
+                >
+                  <span>View All Products</span>
+                  <span>→</span>
+                </button>
+              </div>
+
+              <div class="grid ${isPcMode ? 'grid-cols-5' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5'} gap-3.5 flex-1">
+                ${featured.map((prod) => {
+                  const inStock = Number(prod.stockQuantity) > 0;
+                  return `
+                    <article class="bg-white rounded-[18px] border border-slate-200/75 p-3 flex flex-col justify-between soft-shadow hover:border-brand-500/40 hover:-translate-y-1 transition duration-200">
+                      <div>
+                        <button
+                          type="button"
+                          onclick="navigate('product', { productId: '${prod.id}' })"
+                          class="w-full h-28 rounded-xl overflow-hidden bg-slate-900 relative mb-3 block"
+                        >
+                          <img
+                            src="${escapeHtml(prod.imageUrl || prod.logoUrl || FALLBACK_IMG)}"
+                            onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                            alt="${escapeHtml(prod.title)}"
+                            class="w-full h-full object-cover"
+                          />
+                          <img
+                            src="${escapeHtml(prod.logoUrl || FALLBACK_IMG)}"
+                            onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                            alt="${escapeHtml(prod.title)} logo"
+                            class="w-7 h-7 rounded-lg object-cover border-2 border-white shadow-md absolute bottom-2 left-2 bg-white"
+                          />
+                        </button>
+
+                        <button
+                          type="button"
+                          onclick="navigate('product', { productId: '${prod.id}' })"
+                          class="text-left block w-full"
+                        >
+                          <h3 class="font-display font-bold text-[13.5px] text-slate-900 line-clamp-2 leading-snug min-h-[36px]">
+                            ${escapeHtml(prod.title)}
+                          </h3>
+                        </button>
+
+                        <div class="flex items-center justify-between gap-1.5 mt-2.5 mb-3">
+                          <span class="font-display font-extrabold text-[15px] text-slate-950">
+                            ${formatBDT(prod.priceBdt)}
+                          </span>
+                          <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
+                            inStock
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200/80'
+                          }">
+                            ${inStock ? 'In Stock' : 'Out of stock'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onclick="addProductToCart('${prod.id}')"
+                        ${!inStock ? 'disabled' : ''}
+                        class="w-full py-2 px-3 rounded-xl font-semibold text-[12.5px] flex items-center justify-center gap-1.5 transition ${
+                          inStock
+                            ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-xs'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        }"
+                      >
+                        <span>🛒</span>
+                        <span>Add to Cart</span>
+                      </button>
+                    </article>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="${isPcMode ? 'col-span-3' : 'lg:col-span-3'}">
+              <div class="why-card-bg rounded-[22px] p-6 text-white h-full flex flex-col justify-between shadow-lg relative overflow-hidden">
+                <div>
+                  <h2 class="font-display font-extrabold text-[22px] leading-tight mb-5">
+                    Why Choose<br/>BLUE VOLT?
+                  </h2>
+                  <ul class="space-y-3 text-[13.5px] font-medium text-blue-50">
+                    <li class="flex items-center gap-2.5">
+                      <span class="text-white font-bold">✓</span>
+                      <span>Instant Delivery</span>
+                    </li>
+                    <li class="flex items-center gap-2.5">
+                      <span class="text-white font-bold">✓</span>
+                      <span>Secure Payments</span>
+                    </li>
+                    <li class="flex items-center gap-2.5">
+                      <span class="text-white font-bold">✓</span>
+                      <span>Best Prices</span>
+                    </li>
+                    <li class="flex items-center gap-2.5">
+                      <span class="text-white font-bold">✓</span>
+                      <span>24/7 Support</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="pt-6">
+                  <button
+                    type="button"
+                    onclick="navigate('support')"
+                    class="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-blue-50 text-brand-600 font-display font-bold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition"
+                  >
+                    <span>Contact Support</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="bg-white rounded-[22px] border border-slate-200/80 p-5 sm:p-6 soft-shadow space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-brand-600">3 • Store Basics</span>
+                <h2 class="font-display font-bold text-lg text-slate-950">Quick Store Essentials</h2>
+              </div>
+              <span class="text-xs font-semibold text-slate-500">BDT Manual Checkout • bKash / Nagad / Upay / Rocket</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+              <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/70 space-y-1">
+                <div class="font-display font-bold text-sm text-slate-900">💎 Robux Rate & Stock</div>
+                <p class="text-slate-600">Rate: <strong>${formatBDT(state.robux.ratePerRobux)}/R$</strong> • Available: <strong>${Number(state.robux.robuxStock).toLocaleString('en-US')} R$</strong></p>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/70 space-y-1">
+                <div class="font-display font-bold text-sm text-slate-900">👾 Discord Items Ready</div>
+                <p class="text-slate-600">Discord Nitro, Nitro Basic, 14x Server Boosts & Profile Decorations in stock.</p>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/70 space-y-1">
+                <div class="font-display font-bold text-sm text-slate-900">📦 Order Verification</div>
+                <p class="text-slate-600">Submit your TrxID and last 4 sender digits at checkout to track status live.</p>
+              </div>
+            </div>
+          </section>
+        </main>
+      `;
+    }
+
+    // Discord Items storefront view
+    function renderDiscordPage() {
+      const discordProducts = state.products.filter((p) => p.isActive && p.category === 'Discord Items');
+      return `
+        <main class="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <div class="bg-gradient-to-r from-[#5865F2] to-[#3B49DF] rounded-[22px] p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div class="space-y-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-xs font-bold">
+                <span>👾</span>
+                <span>Official Discord Storefront</span>
+              </span>
+              <h1 class="font-display font-extrabold text-2xl sm:text-3xl">Discord Items, Nitro & Server Boosts</h1>
+              <p class="text-sm text-indigo-100 max-w-xl">
+                Buy Discord Nitro, Nitro Basic, 14x Server Boosts, and Avatar Decorations in BDT via bKash, Nagad, Upay, or Rocket.
+              </p>
+            </div>
+            <button
+              type="button"
+              onclick="navigate('marketplace', { category: 'All' })"
+              class="px-4 py-2.5 rounded-xl bg-white text-[#4752C4] font-display font-bold text-xs shrink-0 hover:bg-indigo-50 transition"
+            >
+              Browse All Categories →
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${discordProducts.map((prod) => {
+              const inStock = Number(prod.stockQuantity) > 0;
+              return `
+                <article class="bg-white rounded-[20px] border border-slate-200/80 p-4 flex flex-col justify-between soft-shadow hover:border-indigo-400/50 transition">
+                  <div>
+                    <button
+                      type="button"
+                      onclick="navigate('product', { productId: '${prod.id}' })"
+                      class="w-full h-36 rounded-xl overflow-hidden bg-slate-900 relative mb-3 block"
+                    >
+                      <img
+                        src="${escapeHtml(prod.imageUrl || prod.logoUrl || FALLBACK_IMG)}"
+                        onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                        alt="${escapeHtml(prod.title)}"
+                        class="w-full h-full object-cover"
+                      />
+                      <img
+                        src="${escapeHtml(prod.logoUrl || FALLBACK_IMG)}"
+                        onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                        alt="${escapeHtml(prod.title)} logo"
+                        class="w-8 h-8 rounded-lg object-cover border-2 border-white shadow absolute bottom-2.5 left-2.5 bg-white"
+                      />
+                    </button>
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-indigo-600 mb-1">
+                      <span>👾 ${escapeHtml(prod.category)}</span>
+                      <span class="text-slate-500">★ ${Number(prod.ratingCount || 0).toLocaleString('en-US')} ratings</span>
+                    </div>
+                    <button type="button" onclick="navigate('product', { productId: '${prod.id}' })" class="text-left">
+                      <h3 class="font-display font-bold text-base text-slate-950 line-clamp-2">${escapeHtml(prod.title)}</h3>
+                    </button>
+                    <p class="text-xs text-slate-500 line-clamp-2 mt-1">${escapeHtml(prod.description)}</p>
+                  </div>
+
+                  <div class="pt-4 mt-4 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="font-display font-extrabold text-lg text-slate-950">${formatBDT(prod.priceBdt)}</span>
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                        inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                      }">
+                        ${inStock ? `In Stock (${prod.stockQuantity})` : 'Out of stock'}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onclick="addProductToCart('${prod.id}')"
+                        ${!inStock ? 'disabled' : ''}
+                        class="py-2 px-3 rounded-xl border border-brand-600 text-brand-600 hover:bg-brand-50 text-xs font-semibold disabled:opacity-40"
+                      >
+                        Add to Cart
+                      </button>
+                      <button
+                        type="button"
+                        onclick="buyNowProduct('${prod.id}')"
+                        ${!inStock ? 'disabled' : ''}
+                        class="py-2 px-3 rounded-xl text-xs font-semibold ${
+                          inStock ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        }"
+                      >
+                        Buy Now
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </div>
+        </main>
+      `;
+    }
+
+    // Robux calculator page
+    function renderRobuxPage() {
+      const stockStatus = getRobuxStockStatus();
+      const countdown = getRestockCountdownText();
+      const defaultRobux = Number(window.__selectedRobuxAmount || 800);
+      const calcTotal = Math.round(defaultRobux * Number(state.robux.ratePerRobux));
+
+      return `
+        <main class="max-w-[1040px] w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <div class="bg-white rounded-[22px] border border-slate-200/80 p-6 sm:p-8 soft-shadow">
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100">
+              <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold mb-2">
+                  <span>❖</span>
+                  <span>Live Rate: ${formatBDT(state.robux.ratePerRobux)} per Robux</span>
+                </div>
+                <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-950">Robux Top-Up Calculator</h1>
+                <p class="text-sm text-slate-500 mt-1">Select a preset package or enter any Robux amount to calculate BDT automatically.</p>
+              </div>
+
+              <div class="text-right space-y-1.5">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                  stockStatus.tone === 'emerald'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : stockStatus.tone === 'amber'
+                    ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                }">
+                  ${stockStatus.label} (${Number(state.robux.robuxStock).toLocaleString('en-US')} R$)
+                </span>
+                ${
+                  countdown
+                    ? `<div class="text-xs font-semibold text-slate-600">Restock Timer: <span class="font-mono text-brand-700">${countdown}</span></div>`
+                    : ''
+                }
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-6">
+              <div class="lg:col-span-7 space-y-4">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Quick Packages</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  ${state.robux.packages.map((pkg) => {
+                    const price = Math.round(pkg.robux * Number(state.robux.ratePerRobux));
+                    const active = defaultRobux === pkg.robux;
+                    return `
+                      <button
+                        type="button"
+                        onclick="setRobuxCalcAmount(${pkg.robux})"
+                        class="p-3 rounded-xl border text-center transition ${
+                          active
+                            ? 'bg-brand-50 border-brand-600 text-brand-700'
+                            : 'bg-[#F4F7FC] border-slate-200 hover:border-brand-400 text-slate-900'
+                        }"
+                      >
+                        <div class="font-display font-bold text-sm">${pkg.robux.toLocaleString('en-US')} R$</div>
+                        <div class="text-xs font-bold text-brand-600 mt-0.5">${formatBDT(price)}</div>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Custom Robux Amount</label>
+                  <input
+                    id="robuxCustomInput"
+                    type="number"
+                    min="10"
+                    max="100000"
+                    value="${defaultRobux}"
+                    oninput="setRobuxCalcAmount(this.value, true)"
+                    class="w-full h-11 px-4 rounded-xl border border-slate-200 bg-[#F4F7FC] font-display font-bold text-base text-slate-900 focus:outline-none focus:bg-white focus:border-brand-600"
+                  />
+                </div>
+              </div>
+
+              <div class="lg:col-span-5 bg-[#F4F7FC] rounded-2xl border border-slate-200/80 p-5 flex flex-col justify-between">
+                <div class="space-y-3">
+                  <div class="flex justify-between text-sm text-slate-600">
+                    <span>Selected Robux</span>
+                    <span id="robuxSummaryQty" class="font-display font-bold text-slate-900">${defaultRobux.toLocaleString('en-US')} Robux</span>
+                  </div>
+                  <div class="flex justify-between text-sm text-slate-600">
+                    <span>Current Rate</span>
+                    <span class="font-semibold text-slate-800">${formatBDT(state.robux.ratePerRobux)} / R$</span>
+                  </div>
+                  <div class="border-t border-slate-200 pt-3 flex justify-between items-baseline">
+                    <span class="text-sm font-bold text-slate-800">Total Payable</span>
+                    <span id="robuxSummaryTotal" class="font-display font-extrabold text-2xl text-brand-600">${formatBDT(calcTotal)}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onclick="proceedRobuxToCheckout()"
+                  ${!stockStatus.available ? 'disabled' : ''}
+                  class="mt-6 w-full py-3 px-4 rounded-xl font-display font-bold text-sm transition ${
+                    stockStatus.available
+                      ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-600/20'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                  }"
+                >
+                  ${stockStatus.available ? 'Continue to Manual Checkout →' : 'Robux Currently Out of Stock'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    // Marketplace catalog view
+    function renderMarketplacePage() {
+      const categories = ['All', 'Discord Items', 'Gift Cards', 'Game Accounts', 'In-Game Items'];
+      const q = state.searchQuery.trim().toLowerCase();
+      const filtered = state.products.filter((p) => {
+        if (!p.isActive) return false;
+        const matchesCat = state.selectedCategory === 'All' || p.category === state.selectedCategory;
+        const matchesQuery =
+          !q ||
+          p.title.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q);
+        return matchesCat && matchesQuery;
+      });
+
+      return `
+        <main class="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-950">Digital Marketplace</h1>
+              <p class="text-sm text-slate-500 mt-1">Discord Items, gift cards, game accounts, and in-game items with fast manual verification.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              ${categories.map((cat) => `
+                <button
+                  type="button"
+                  onclick="navigate('marketplace', { category: '${cat}' })"
+                  class="px-3.5 py-2 rounded-full text-xs font-semibold transition ${
+                    state.selectedCategory === cat
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                  }"
+                >
+                  ${cat}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${filtered.map((prod) => {
+              const inStock = Number(prod.stockQuantity) > 0;
+              return `
+                <article class="bg-white rounded-[20px] border border-slate-200/80 p-4 flex flex-col justify-between soft-shadow">
+                  <div>
+                    <button
+                      type="button"
+                      onclick="navigate('product', { productId: '${prod.id}' })"
+                      class="w-full h-36 rounded-xl overflow-hidden bg-slate-900 relative mb-3 block"
+                    >
+                      <img
+                        src="${escapeHtml(prod.imageUrl || prod.logoUrl || FALLBACK_IMG)}"
+                        onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                        alt="${escapeHtml(prod.title)}"
+                        class="w-full h-full object-cover"
+                      />
+                      <img
+                        src="${escapeHtml(prod.logoUrl || FALLBACK_IMG)}"
+                        onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                        alt="${escapeHtml(prod.title)} logo"
+                        class="w-8 h-8 rounded-lg object-cover border-2 border-white shadow absolute bottom-2.5 left-2.5 bg-white"
+                      />
+                    </button>
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                      <span>${escapeHtml(prod.category)}</span>
+                      <span>★ ${Number(prod.ratingCount || 0).toLocaleString('en-US')} ratings</span>
+                    </div>
+                    <button type="button" onclick="navigate('product', { productId: '${prod.id}' })" class="text-left">
+                      <h3 class="font-display font-bold text-base text-slate-950 line-clamp-1">${escapeHtml(prod.title)}</h3>
+                    </button>
+                    <p class="text-xs text-slate-500 line-clamp-2 mt-1">${escapeHtml(prod.description)}</p>
+                  </div>
+
+                  <div class="pt-4 mt-4 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="font-display font-extrabold text-lg text-slate-950">${formatBDT(prod.priceBdt)}</span>
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                        inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                      }">
+                        ${inStock ? `In Stock (${prod.stockQuantity})` : 'Out of stock'}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onclick="navigate('product', { productId: '${prod.id}' })"
+                        class="py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-800"
+                      >
+                        Details
+                      </button>
+                      <button
+                        type="button"
+                        onclick="buyNowProduct('${prod.id}')"
+                        ${!inStock ? 'disabled' : ''}
+                        class="py-2 px-3 rounded-xl text-xs font-semibold ${
+                          inStock ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        }"
+                      >
+                        Buy Now
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+          </div>
+        </main>
+      `;
+    }
+
+    // Individual product detail view
+    function renderProductDetailPage() {
+      const prod = state.products.find((p) => p.id === state.selectedProductId) || state.products[0];
+      const inStock = Number(prod.stockQuantity) > 0;
+      return `
+        <main class="max-w-[1000px] w-full mx-auto px-4 sm:px-6 py-8">
+          <button type="button" onclick="navigate('marketplace')" class="text-xs font-semibold text-brand-600 hover:underline mb-4 inline-block">
+            ← Back to Marketplace
+          </button>
+          <div class="bg-white rounded-[22px] border border-slate-200/80 p-6 sm:p-8 grid grid-cols-1 md:grid-cols-12 gap-6 soft-shadow">
+            <div class="md:col-span-5">
+              <div class="w-full h-64 rounded-2xl overflow-hidden bg-slate-900 relative">
+                <img
+                  src="${escapeHtml(prod.imageUrl || prod.logoUrl || FALLBACK_IMG)}"
+                  onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                  alt="${escapeHtml(prod.title)}"
+                  class="w-full h-full object-cover"
+                />
+                <img
+                  src="${escapeHtml(prod.logoUrl || FALLBACK_IMG)}"
+                  onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                  alt="${escapeHtml(prod.title)} logo"
+                  class="w-11 h-11 rounded-xl object-cover border-2 border-white shadow-lg absolute bottom-3 left-3 bg-white"
+                />
+              </div>
+            </div>
+            <div class="md:col-span-7 flex flex-col justify-between space-y-5">
+              <div class="space-y-3">
+                <div class="flex items-center gap-2 text-xs font-semibold">
+                  <span class="px-2.5 py-1 rounded-full bg-brand-50 text-brand-700">${escapeHtml(prod.category)}</span>
+                  <span class="px-2.5 py-1 rounded-full ${inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">
+                    ${inStock ? `In Stock (${prod.stockQuantity})` : 'Out of stock'}
+                  </span>
+                  <span class="text-slate-500">★ ${Number(prod.ratingCount || 0).toLocaleString('en-US')} Rate Count</span>
+                </div>
+                <h1 class="font-display font-extrabold text-2xl text-slate-950">${escapeHtml(prod.title)}</h1>
+                <p class="text-sm text-slate-600 leading-relaxed">${escapeHtml(prod.description)}</p>
+                <div class="font-display font-extrabold text-3xl text-brand-600 pt-1">${formatBDT(prod.priceBdt)}</div>
+              </div>
+              <div class="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onclick="addProductToCart('${prod.id}')"
+                  ${!inStock ? 'disabled' : ''}
+                  class="px-5 py-3 rounded-xl border border-brand-600 text-brand-600 hover:bg-brand-50 font-semibold text-sm disabled:opacity-40"
+                >
+                  🛒 Add to Cart
+                </button>
+                <button
+                  type="button"
+                  onclick="buyNowProduct('${prod.id}')"
+                  ${!inStock ? 'disabled' : ''}
+                  class="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-sm disabled:opacity-40"
+                >
+                  Buy Now →
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    // Manual mobile banking checkout view (bKash, Nagad, Upay, Rocket)
+    function renderCheckoutPage() {
+      const enabledMethods = state.paymentMethods.filter((m) => m.isEnabled);
+      const totalBdt = getCartTotalBDT();
+      const requiresRoblox = state.cart.some((i) => i.itemType === 'robux' || i.requiresRobloxUsername);
+      const requiresDiscord = state.cart.some((i) => i.requiresDiscordTag || i.category === 'Discord Items');
+      const selectedMethodId = window.__selectedPaymentMethodId || (enabledMethods[0] && enabledMethods[0].id) || '';
+      const activeMethod = enabledMethods.find((m) => m.id === selectedMethodId) || enabledMethods[0] || null;
+
+      return `
+        <main class="max-w-[1140px] w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-950">Checkout & Manual Payment</h1>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5 bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-4 h-fit">
+              <h2 class="font-display font-bold text-base text-slate-950">Order Summary</h2>
+              ${
+                state.cart.length === 0
+                  ? `<div class="py-8 text-center text-sm text-slate-500">
+                      Your cart is empty. <button type="button" onclick="navigate('marketplace')" class="text-brand-600 font-semibold underline">Browse Marketplace</button>
+                     </div>`
+                  : `
+                    <div class="divide-y divide-slate-100">
+                      ${state.cart.map((item) => `
+                        <div class="py-3 flex items-center justify-between gap-3">
+                          <div>
+                            <div class="font-semibold text-sm text-slate-900">${escapeHtml(item.title)}</div>
+                            <div class="text-xs text-slate-500">
+                              ${item.itemType === 'robux' ? `${Number(item.quantity).toLocaleString('en-US')} Robux` : `Qty: ${item.quantity}`} × ${formatBDT(item.unitPriceBdt)}
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <span class="font-display font-bold text-sm text-slate-950">
+                              ${formatBDT(Number(item.unitPriceBdt) * Number(item.quantity))}
+                            </span>
+                            <button type="button" onclick="removeFromCart('${item.key}')" class="text-xs text-rose-600 hover:underline">Remove</button>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
+                      <span class="font-bold text-sm text-slate-800">Total to Send (BDT)</span>
+                      <span class="font-display font-extrabold text-xl text-brand-600">${formatBDT(totalBdt)}</span>
+                    </div>
+                  `
+              }
+            </div>
+
+            <div class="lg:col-span-7 bg-white rounded-[20px] border border-slate-200/80 p-5 sm:p-6 soft-shadow">
+              ${
+                enabledMethods.length === 0
+                  ? `<div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-semibold">
+                      No payment methods are currently enabled by the store owner. Please try again later.
+                     </div>`
+                  : `
+                    <form onsubmit="submitManualOrder(event)" class="space-y-5">
+                      <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                          1. Select Enabled Payment Method
+                        </label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                          ${enabledMethods.map((m) => `
+                            <button
+                              type="button"
+                              onclick="selectCheckoutMethod('${m.id}')"
+                              class="p-3 rounded-xl border text-left transition ${
+                                activeMethod && activeMethod.id === m.id
+                                  ? 'border-brand-600 bg-brand-50/70'
+                                  : 'border-slate-200 bg-[#F4F7FC] hover:border-slate-300'
+                              }"
+                            >
+                              <span class="inline-block px-2 py-0.5 rounded text-white text-[11px] font-bold mb-1" style="background:${m.badgeBg}">${escapeHtml(m.badgeText)}</span>
+                              <div class="font-display font-bold text-sm text-slate-900">${escapeHtml(m.name)}</div>
+                              <div class="text-[11px] text-slate-500">${escapeHtml(m.accountType)}</div>
+                            </button>
+                          `).join('')}
+                        </div>
+                      </div>
+
+                      ${
+                        activeMethod
+                          ? `
+                            <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/80 space-y-2">
+                              <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                  ${escapeHtml(activeMethod.name)} (${escapeHtml(activeMethod.accountType)}) Receiving Number
+                                </span>
+                                <span class="font-display font-extrabold text-sm text-brand-600">
+                                  Exact Amount: ${formatBDT(totalBdt)}
+                                </span>
+                              </div>
+                              <div class="flex items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200">
+                                <span class="font-mono font-bold text-base text-slate-950">${escapeHtml(activeMethod.receivingNumber)}</span>
+                                <button
+                                  type="button"
+                                  onclick="copyText('${escapeHtml(activeMethod.receivingNumber)}', 'Receiving number copied!')"
+                                  class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold"
+                                >
+                                  Copy Number
+                                </button>
+                              </div>
+                              <p class="text-xs text-slate-600">${escapeHtml(activeMethod.instructionNote || '')}</p>
+                            </div>
+                          `
+                          : ''
+                      }
+
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Transaction ID (TrxID) <span class="text-rose-600">*</span>
+                          </label>
+                          <input
+                            id="checkoutTrxId"
+                            type="text"
+                            required
+                            placeholder="e.g. 9A7B6C5D4E"
+                            class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm font-mono uppercase focus:bg-white focus:border-brand-600 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Last 4 Digits of Sender Number <span class="text-rose-600">*</span>
+                          </label>
+                          <input
+                            id="checkoutLast4"
+                            type="text"
+                            required
+                            maxlength="4"
+                            pattern="[0-9]{4}"
+                            placeholder="e.g. 1234"
+                            class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm font-mono focus:bg-white focus:border-brand-600 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      ${
+                        requiresRoblox
+                          ? `
+                            <div>
+                              <label class="block text-xs font-bold text-slate-700 mb-1">
+                                Roblox Username <span class="text-rose-600">*</span>
+                              </label>
+                              <input
+                                id="checkoutRobloxUser"
+                                type="text"
+                                required
+                                minlength="3"
+                                placeholder="Enter exact Roblox username"
+                                class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm focus:bg-white focus:border-brand-600 focus:outline-none"
+                              />
+                            </div>
+                          `
+                          : ''
+                      }
+
+                      ${
+                        requiresDiscord
+                          ? `
+                            <div>
+                              <label class="block text-xs font-bold text-slate-700 mb-1">
+                                Discord Username / Server Invite Link <span class="text-rose-600">*</span>
+                              </label>
+                              <input
+                                id="checkoutDiscordUser"
+                                type="text"
+                                required
+                                minlength="2"
+                                placeholder="e.g. niloykhan0 or discord.gg/yourserver"
+                                class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm focus:bg-white focus:border-brand-600 focus:outline-none"
+                              />
+                            </div>
+                          `
+                          : ''
+                      }
+
+                      <button
+                        type="submit"
+                        ${state.cart.length === 0 ? 'disabled' : ''}
+                        class="w-full py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 text-white font-display font-bold text-sm shadow-sm transition"
+                      >
+                        Submit Order (Status: Pending)
+                      </button>
+                    </form>
+                  `
+              }
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    // Order history view
+    function renderOrdersPage() {
+      const visibleOrders = state.currentUser
+        ? state.orders.filter((o) => o.customerEmail.toLowerCase() === state.currentUser.email.toLowerCase())
+        : state.orders;
+
+      return `
+        <main class="max-w-[1140px] w-full mx-auto px-4 sm:px-6 py-8 space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-950">Order History & Status</h1>
+              <p class="text-sm text-slate-500 mt-1">Track order progress: Pending → Processing → Completed / Rejected / Refunded.</p>
+            </div>
+            ${
+              !state.currentUser
+                ? `<button type="button" onclick="openAuthModal('login')" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-semibold">Login to Filter Your Account</button>`
+                : ''
+            }
+          </div>
+
+          <div class="bg-white rounded-[20px] border border-slate-200/80 overflow-x-auto soft-shadow">
+            <table class="w-full text-left border-collapse min-w-[760px]">
+              <thead>
+                <tr class="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-[#F4F7FC]">
+                  <th class="py-3 px-4">Order ID</th>
+                  <th class="py-3 px-4">Item</th>
+                  <th class="py-3 px-4">Amount</th>
+                  <th class="py-3 px-4">Method & TrxID</th>
+                  <th class="py-3 px-4">Sender Last 4</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4">Time</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-sm">
+                ${visibleOrders.map((o) => `
+                  <tr>
+                    <td class="py-3.5 px-4 font-mono font-bold text-xs text-slate-900">${escapeHtml(o.orderNumber)}</td>
+                    <td class="py-3.5 px-4">
+                      <div class="font-semibold text-slate-900">${escapeHtml(o.itemTitle)}</div>
+                      ${o.robloxUsername ? `<div class="text-xs text-slate-500">Roblox: ${escapeHtml(o.robloxUsername)}</div>` : ''}
+                      ${o.discordUsername ? `<div class="text-xs text-indigo-600">Discord: ${escapeHtml(o.discordUsername)}</div>` : ''}
+                    </td>
+                    <td class="py-3.5 px-4 font-display font-bold text-slate-950">${formatBDT(o.totalAmountBdt)}</td>
+                    <td class="py-3.5 px-4 text-xs">
+                      <div class="font-semibold text-slate-800">${escapeHtml(o.paymentMethodName)}</div>
+                      <div class="font-mono text-slate-500">${escapeHtml(o.trxId)}</div>
+                    </td>
+                    <td class="py-3.5 px-4 font-mono text-xs">${escapeHtml(o.senderLast4)}</td>
+                    <td class="py-3.5 px-4">${renderStatusBadge(o.status)}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-500">${escapeHtml(o.createdAt)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </main>
+      `;
+    }
+
+    // Support and manual payment guide view
+    function renderSupportPage() {
+      return `
+        <main class="max-w-[960px] w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <div class="bg-white rounded-[22px] border border-slate-200/80 p-6 sm:p-8 soft-shadow space-y-4">
+            <h1 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-950">24/7 Support & How Manual Payment Works</h1>
+            <p class="text-sm text-slate-600 leading-relaxed">
+              Every Robux top-up, Discord item, and digital product order on <strong>BLUE VOLT</strong> uses direct manual mobile payment across Bangladesh (<strong>bKash, Nagad, Upay, Rocket</strong>).
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/70">
+                <div class="font-display font-bold text-sm text-slate-900 mb-1">1. Copy Official Number</div>
+                <p class="text-xs text-slate-600">Only pay the receiving number displayed at checkout for an enabled payment method.</p>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/70">
+                <div class="font-display font-bold text-sm text-slate-900 mb-1">2. Submit TrxID & Details</div>
+                <p class="text-xs text-slate-600">Provide a unique Transaction ID, sender last 4 digits, and your Roblox or Discord username.</p>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/70">
+                <div class="font-display font-bold text-sm text-slate-900 mb-1">3. Fast Verification</div>
+                <p class="text-xs text-slate-600">Staff verify your payment and move orders from Pending → Processing → Completed.</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      `;
+    }
+
+    // RBAC Admin Panel container
+    function renderAdminPage() {
+      const allowedTabs = getAllowedAdminTabsForCurrentRole();
+      const hasAnyStaffAccess = allowedTabs.length > 0;
+      const isPcMode = state.viewMode === 'pc';
+
+      if (!hasAnyStaffAccess || !canAccessAdminTab(state.activeAdminTab)) {
+        return `
+          <main class="max-w-[760px] w-full mx-auto px-4 sm:px-6 py-12">
+            <div class="bg-white rounded-[22px] border border-rose-200 p-8 text-center soft-shadow space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl mx-auto">🚫</div>
+              <h1 class="font-display font-extrabold text-2xl text-slate-950">Access Denied</h1>
+              <p class="text-sm text-slate-600">
+                Your current role (<strong>${escapeHtml(state.activeRole)}</strong>) does not have permission to view this section.
+              </p>
+              <div class="flex flex-wrap justify-center gap-1.5 pt-1">
+                ${['owner', 'admin', 'stock_manager', 'order_manager'].map((r) => `
+                  <button
+                    type="button"
+                    onclick="setDemoRole('${r}')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#F4F7FC] hover:bg-brand-50 text-slate-800 border border-slate-200"
+                  >
+                    Switch to ${r}
+                  </button>
+                `).join('')}
+              </div>
+              <div class="pt-2 flex justify-center gap-3">
+                <button type="button" onclick="navigate('home')" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-semibold">Return Home</button>
+                ${
+                  allowedTabs.length > 0
+                    ? `<button type="button" onclick="switchAdminTab('${allowedTabs[0].id}')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-800 text-xs font-semibold">Go to Allowed Section</button>`
+                    : ''
+                }
+              </div>
+            </div>
+          </main>
+        `;
+      }
+
+      return `
+        <main class="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-7">
+          <div class="mb-5 bg-white rounded-2xl border border-slate-200/80 px-4 py-3 flex flex-wrap items-center justify-between gap-3 soft-shadow">
+            <div class="flex items-center gap-2 text-xs">
+              <span class="font-bold uppercase tracking-wider text-slate-500">Active Role Session:</span>
+              <span class="px-2.5 py-1 rounded-full font-bold bg-slate-900 text-white">${escapeHtml(state.activeRole)}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              ${['owner', 'admin', 'stock_manager', 'order_manager', 'customer'].map((r) => `
+                <button
+                  type="button"
+                  onclick="setDemoRole('${r}')"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${
+                    state.activeRole === r
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-[#F4F7FC] text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }"
+                >
+                  ${r}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="grid ${isPcMode ? 'grid-cols-12' : 'grid-cols-1 lg:grid-cols-12'} gap-6">
+            <aside class="${isPcMode ? 'col-span-3' : 'lg:col-span-3'} bg-white rounded-[20px] border border-slate-200/80 p-3.5 h-fit soft-shadow space-y-1">
+              <div class="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Admin Navigation</div>
+              ${allowedTabs.map((tab) => `
+                <button
+                  type="button"
+                  onclick="switchAdminTab('${tab.id}')"
+                  class="w-full text-left px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition flex items-center justify-between ${
+                    state.activeAdminTab === tab.id
+                      ? 'bg-brand-600 text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-[#F4F7FC]'
+                  }"
+                >
+                  <span>${tab.label}</span>
+                  ${tab.id === 'payments' && !canManagePaymentNumbers() ? '<span class="text-[10px] opacity-80">Owner Only</span>' : ''}
+                </button>
+              `).join('')}
+            </aside>
+
+            <section class="${isPcMode ? 'col-span-9' : 'lg:col-span-9'} space-y-5">
+              ${renderAdminTabContent(state.activeAdminTab)}
+            </section>
+          </div>
+        </main>
+      `;
+    }
+
+    // Admin sub-tab content renderer
+    function renderAdminTabContent(tab) {
+      const isPcMode = state.viewMode === 'pc';
+
+      if (tab === 'dashboard') {
+        const pendingCount = state.orders.filter((o) => o.status === 'Pending').length;
+        const completedRevenue = state.orders
+          .filter((o) => o.status === 'Completed')
+          .reduce((acc, o) => acc + Number(o.totalAmountBdt), 0);
+        const lowStockProducts = state.products.filter((p) => Number(p.stockQuantity) <= Number(p.lowStockThreshold || 5));
+        const robuxLow = Number(state.robux.robuxStock) <= Number(state.robux.lowStockThreshold || 5000) || state.robux.forceOutOfStock;
+        const lowStockTotal = lowStockProducts.length + (robuxLow ? 1 : 0);
+
+        return `
+          <div class="grid ${isPcMode ? 'grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'} gap-4">
+            <div class="bg-white rounded-[18px] border border-slate-200/80 p-4 soft-shadow">
+              <div class="text-xs font-semibold text-slate-500">Total Orders</div>
+              <div class="font-display font-extrabold text-2xl text-slate-950 mt-1">${state.orders.length}</div>
+            </div>
+            <div class="bg-white rounded-[18px] border border-slate-200/80 p-4 soft-shadow">
+              <div class="text-xs font-semibold text-slate-500">Pending Orders</div>
+              <div class="font-display font-extrabold text-2xl text-amber-600 mt-1">${pendingCount}</div>
+            </div>
+            <div class="bg-white rounded-[18px] border border-slate-200/80 p-4 soft-shadow">
+              <div class="text-xs font-semibold text-slate-500">Completed Revenue</div>
+              <div class="font-display font-extrabold text-2xl text-brand-600 mt-1">${formatBDT(completedRevenue)}</div>
+            </div>
+            <div class="bg-white rounded-[18px] border border-slate-200/80 p-4 soft-shadow">
+              <div class="text-xs font-semibold text-slate-500">Low / Out-of-Stock Alerts</div>
+              <div class="font-display font-extrabold text-2xl text-rose-600 mt-1">${lowStockTotal}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (tab === 'orders') {
+        const statusFilter = window.__adminOrderStatusFilter || 'All';
+        const searchTerm = (window.__adminOrderSearch || '').trim().toLowerCase();
+        const rows = state.orders.filter((o) => {
+          const matchesStatus = statusFilter === 'All' || o.status === statusFilter;
+          const matchesSearch =
+            !searchTerm ||
+            o.orderNumber.toLowerCase().includes(searchTerm) ||
+            o.trxId.toLowerCase().includes(searchTerm) ||
+            (o.robloxUsername && o.robloxUsername.toLowerCase().includes(searchTerm)) ||
+            (o.discordUsername && o.discordUsername.toLowerCase().includes(searchTerm)) ||
+            o.customerEmail.toLowerCase().includes(searchTerm);
+          return matchesStatus && matchesSearch;
+        });
+
+        return `
+          <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 class="font-display font-bold text-lg text-slate-950">Orders Management</h2>
+              <div class="flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  value="${escapeHtml(window.__adminOrderSearch || '')}"
+                  oninput="setAdminOrderFilter('search', this.value)"
+                  placeholder="Search TrxID, order ID, username..."
+                  class="h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs w-56"
+                />
+                <select
+                  onchange="setAdminOrderFilter('status', this.value)"
+                  class="h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-semibold"
+                >
+                  ${['All', 'Pending', 'Processing', 'Completed', 'Rejected', 'Refunded'].map((st) => `
+                    <option value="${st}" ${statusFilter === st ? 'selected' : ''}>${st}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse min-w-[820px]">
+                <thead>
+                  <tr class="border-b border-slate-100 text-[11px] font-bold uppercase text-slate-500 bg-[#F4F7FC]">
+                    <th class="py-2.5 px-3">Order</th>
+                    <th class="py-2.5 px-3">Item & Amount</th>
+                    <th class="py-2.5 px-3">Payment Details</th>
+                    <th class="py-2.5 px-3">Status</th>
+                    <th class="py-2.5 px-3">Update Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                  ${rows.map((o) => `
+                    <tr>
+                      <td class="py-3 px-3">
+                        <div class="font-mono font-bold text-slate-900">${escapeHtml(o.orderNumber)}</div>
+                        <div class="text-slate-500">${escapeHtml(o.customerEmail)}</div>
+                        <div class="text-[11px] text-slate-400">${escapeHtml(o.createdAt)}</div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <div class="font-semibold text-slate-900">${escapeHtml(o.itemTitle)}</div>
+                        <div class="font-display font-bold text-brand-600">${formatBDT(o.totalAmountBdt)}</div>
+                        ${o.robloxUsername ? `<div class="text-slate-600">Roblox: <strong>${escapeHtml(o.robloxUsername)}</strong></div>` : ''}
+                        ${o.discordUsername ? `<div class="text-indigo-600">Discord: <strong>${escapeHtml(o.discordUsername)}</strong></div>` : ''}
+                      </td>
+                      <td class="py-3 px-3">
+                        <div><strong>${escapeHtml(o.paymentMethodName)}</strong> • Last 4: <span class="font-mono">${escapeHtml(o.senderLast4)}</span></div>
+                        <div class="font-mono text-slate-600">TrxID: ${escapeHtml(o.trxId)}</div>
+                      </td>
+                      <td class="py-3 px-3">${renderStatusBadge(o.status)}</td>
+                      <td class="py-3 px-3">
+                        <select
+                          onchange="updateOrderStatus('${o.id}', this.value)"
+                          class="h-8 px-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold"
+                        >
+                          ${['Pending', 'Processing', 'Completed', 'Rejected', 'Refunded'].map((st) => `
+                            <option value="${st}" ${o.status === st ? 'selected' : ''}>${st}</option>
+                          `).join('')}
+                        </select>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (tab === 'marketplace') {
+        return `
+          <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-5">
+            <h2 class="font-display font-bold text-lg text-slate-950">Add New Marketplace / Discord Product</h2>
+            <form onsubmit="addMarketplaceProduct(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Title *</label>
+                <input id="newProdTitle" type="text" required placeholder="e.g. Discord Nitro (1 Month)" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
+                <select id="newProdCategory" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs">
+                  <option value="Discord Items">Discord Items</option>
+                  <option value="Gift Cards">Gift Cards</option>
+                  <option value="Game Accounts">Game Accounts</option>
+                  <option value="In-Game Items">In-Game Items</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Price (BDT) *</label>
+                <input id="newProdPrice" type="number" min="1" required placeholder="650" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Stock Quantity *</label>
+                <input id="newProdStock" type="number" min="0" required value="15" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Rate Count (Exact Value)</label>
+                <input id="newProdRatingCount" type="number" min="0" value="100" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Logo URL (Required) *</label>
+                <input id="newProdLogo" type="url" required placeholder="https://..." class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Description *</label>
+                <input id="newProdDesc" type="text" required placeholder="Short digital product summary" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+              </div>
+              <div class="flex items-end">
+                <button type="submit" class="w-full h-9 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold">
+                  + Save Product
+                </button>
+              </div>
+            </form>
+
+            <div class="pt-4 border-t border-slate-100 space-y-2.5">
+              <h3 class="font-display font-bold text-sm text-slate-900">Existing Products</h3>
+              ${state.products.map((p) => `
+                <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-[#F4F7FC] border border-slate-200/70 text-xs">
+                  <div class="flex items-center gap-3">
+                    <img
+                      src="${escapeHtml(p.logoUrl || FALLBACK_IMG)}"
+                      onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"
+                      alt=""
+                      class="w-9 h-9 rounded-lg object-cover border border-white"
+                    />
+                    <div>
+                      <div class="font-bold text-slate-900">${escapeHtml(p.title)} <span class="text-[11px] font-semibold text-brand-600">(${escapeHtml(p.category)})</span></div>
+                      <div class="text-slate-500">${formatBDT(p.priceBdt)} • Stock: ${p.stockQuantity} • Ratings: ${p.ratingCount}</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onclick="toggleProductActive('${p.id}')"
+                      class="px-2.5 py-1 rounded-lg font-semibold ${p.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}"
+                    >
+                      ${p.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                    <button
+                      type="button"
+                      onclick="deleteProduct('${p.id}')"
+                      class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-semibold"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (tab === 'stock') {
+        const countdown = getRestockCountdownText();
+        return `
+          <div class="space-y-5">
+            <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 class="font-display font-bold text-lg text-slate-950">Robux Stock, Out of Stock & Stock Timer</h2>
+                  <p class="text-xs text-slate-500">Current Stock: <strong>${Number(state.robux.robuxStock).toLocaleString('en-US')} R$</strong> • Status: <strong>${getRobuxStockStatus().label}</strong></p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  ${countdown ? `<span class="px-3 py-1 rounded-full bg-brand-50 text-brand-700 font-mono text-xs font-bold">Timer: ${countdown}</span>` : ''}
+                  <button
+                    type="button"
+                    onclick="toggleRobuxOutOfStockQuick()"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                      state.robux.forceOutOfStock
+                        ? 'bg-rose-600 text-white border-rose-600 hover:bg-rose-700'
+                        : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                    }"
+                  >
+                    ${state.robux.forceOutOfStock ? '✓ Out of Stock ON (Click to Restore)' : '🚫 Mark Robux Out of Stock'}
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Robux Stock Balance</label>
+                  <input id="robuxStockInput" type="number" min="0" value="${Number(state.robux.robuxStock)}" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-bold" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Low Stock Threshold</label>
+                  <input id="robuxLowThresholdInput" type="number" min="0" value="${Number(state.robux.lowStockThreshold)}" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-bold" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Robux Out of Stock Option</label>
+                  <select id="robuxForceOosInput" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-semibold">
+                    <option value="false" ${!state.robux.forceOutOfStock ? 'selected' : ''}>Available (Normal Stock)</option>
+                    <option value="true" ${state.robux.forceOutOfStock ? 'selected' : ''}>Out of Stock (Locked)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Stock / Restock Timer</label>
+                  <input id="robuxRestockAtInput" type="datetime-local" value="${escapeHtml(state.robux.restockAt || '')}" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[11px] font-bold text-slate-500 mr-1">Quick Stock Timers:</span>
+                  <button type="button" onclick="applyQuickStockTimer(15)" class="px-2.5 py-1 rounded-lg bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200 text-xs font-semibold text-slate-700">+15m</button>
+                  <button type="button" onclick="applyQuickStockTimer(30)" class="px-2.5 py-1 rounded-lg bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200 text-xs font-semibold text-slate-700">+30m</button>
+                  <button type="button" onclick="applyQuickStockTimer(60)" class="px-2.5 py-1 rounded-lg bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200 text-xs font-semibold text-slate-700">+1h</button>
+                  <button type="button" onclick="applyQuickStockTimer(120)" class="px-2.5 py-1 rounded-lg bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200 text-xs font-semibold text-slate-700">+2h</button>
+                  <button type="button" onclick="applyQuickStockTimer(0)" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-600">Clear Timer</button>
+                </div>
+
+                <button type="button" onclick="saveRobuxStockSettings()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold">
+                  Save Robux Stock & Timer
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-3.5">
+              <h2 class="font-display font-bold text-lg text-slate-950">Marketplace & Discord Stock + Exact Rate Count</h2>
+              ${state.products.map((p) => `
+                <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-[#F4F7FC] border border-slate-200/70 text-xs">
+                  <div>
+                    <div class="font-bold text-slate-900">${escapeHtml(p.title)} <span class="text-brand-600">(${escapeHtml(p.category)})</span></div>
+                    <div class="text-slate-500">${Number(p.stockQuantity) === 0 ? 'Out of stock' : Number(p.stockQuantity) <= Number(p.lowStockThreshold) ? 'Low stock' : 'In stock'}</div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label class="flex items-center gap-1.5 font-semibold text-slate-700">
+                      <span>Stock:</span>
+                      <input
+                        id="stockQty_${p.id}"
+                        type="number"
+                        min="0"
+                        value="${Number(p.stockQuantity)}"
+                        class="w-20 h-8 px-2 rounded-lg border border-slate-200 bg-white font-bold"
+                      />
+                    </label>
+                    <label class="flex items-center gap-1.5 font-semibold text-slate-700">
+                      <span>Rate Count:</span>
+                      <input
+                        id="rateCnt_${p.id}"
+                        type="number"
+                        min="0"
+                        value="${Number(p.ratingCount || 0)}"
+                        class="w-24 h-8 px-2 rounded-lg border border-slate-200 bg-white font-bold"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onclick="saveProductStockAndRating('${p.id}')"
+                      class="h-8 px-3 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (tab === 'payments') {
+        const isOwner = canManagePaymentNumbers();
+        return `
+          <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="font-display font-bold text-lg text-slate-950">Payment Methods (bKash, Nagad, Upay, Rocket)</h2>
+                <p class="text-xs text-slate-500">Only the <strong>Owner</strong> role can edit receiving numbers, account types, or toggle payment methods.</p>
+              </div>
+              ${
+                !isOwner
+                  ? `<span class="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+                      🔒 Read-Only (${escapeHtml(state.activeRole)}) — Owner Required
+                     </span>`
+                  : `<span class="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                      ✓ Owner Edit Unlocked
+                     </span>`
+              }
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${state.paymentMethods.map((m) => `
+                <div class="p-4 rounded-2xl bg-[#F4F7FC] border border-slate-200/80 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="px-2.5 py-1 rounded-lg text-white text-xs font-bold" style="background:${m.badgeBg}">${escapeHtml(m.name)}</span>
+                    <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                      <input
+                        id="pmEnabled_${m.id}"
+                        type="checkbox"
+                        ${m.isEnabled ? 'checked' : ''}
+                        ${!isOwner ? 'disabled' : ''}
+                      />
+                      <span>Enabled</span>
+                    </label>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Receiving Number</label>
+                      <input
+                        id="pmNum_${m.id}"
+                        type="text"
+                        value="${escapeHtml(m.receivingNumber)}"
+                        ${!isOwner ? 'disabled' : ''}
+                        class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white font-mono text-xs font-bold disabled:bg-slate-100 disabled:text-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-600 mb-1">Account Type</label>
+                      <select
+                        id="pmType_${m.id}"
+                        ${!isOwner ? 'disabled' : ''}
+                        class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        ${['Personal', 'Merchant', 'Agent'].map((t) => `
+                          <option value="${t}" ${m.accountType === t ? 'selected' : ''}>${t}</option>
+                        `).join('')}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Checkout Instruction</label>
+                    <input
+                      id="pmNote_${m.id}"
+                      type="text"
+                      value="${escapeHtml(m.instructionNote || '')}"
+                      ${!isOwner ? 'disabled' : ''}
+                      class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs disabled:bg-slate-100 disabled:text-slate-400"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onclick="savePaymentMethod('${m.id}')"
+                    ${!isOwner ? 'disabled' : ''}
+                    class="w-full py-2 rounded-xl text-xs font-semibold transition ${
+                      isOwner
+                        ? 'bg-brand-600 hover:bg-brand-700 text-white'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }"
+                  >
+                    Save ${escapeHtml(m.name)} Settings
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (tab === 'robux') {
+        return `
+          <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="font-display font-bold text-lg text-slate-950">Robux Rate Management</h2>
+                <p class="text-xs text-slate-500">Current Rate: <strong>${formatBDT(state.robux.ratePerRobux)}</strong> per 1 Robux (1,000 Robux = ${formatBDT(1000 * Number(state.robux.ratePerRobux))}).</p>
+              </div>
+              <button
+                type="button"
+                onclick="switchAdminTab('stock')"
+                class="px-3 py-1.5 rounded-xl bg-[#F4F7FC] hover:bg-brand-50 border border-slate-200 text-xs font-semibold text-brand-700"
+              >
+                📦 Manage Stock, Out of Stock & Timer →
+              </button>
+            </div>
+
+            <form onsubmit="updateRobuxRate(event)" class="flex flex-wrap items-end gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">New Rate Per 1 Robux (BDT)</label>
+                <input
+                  id="newRobuxRateInput"
+                  type="number"
+                  step="0.0001"
+                  min="0.01"
+                  required
+                  value="${Number(state.robux.ratePerRobux)}"
+                  class="w-48 h-10 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm font-bold"
+                />
+              </div>
+              <button type="submit" class="h-10 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold">
+                Update Live Rate
+              </button>
+            </form>
+
+            <div class="pt-4 border-t border-slate-100 space-y-2">
+              <h3 class="font-display font-bold text-sm text-slate-900">Rate Audit History</h3>
+              ${state.robux.history.map((h) => `
+                <div class="p-3 rounded-xl bg-[#F4F7FC] border border-slate-200/70 flex flex-wrap justify-between gap-2 text-xs">
+                  <span>Changed from <strong>${formatBDT(h.oldRate)}</strong> → <strong class="text-brand-600">${formatBDT(h.newRate)}</strong></span>
+                  <span class="text-slate-500">By ${escapeHtml(h.changedBy)} • ${escapeHtml(h.changedAt)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (tab === 'roles') {
+        const assignableRoles = getAvailableRolesToAssign();
+        const authorizedOwnerEmail = state.exclusiveOwnerEmail || 'owner@bluevolt.bd';
+        return `
+          <div class="bg-white rounded-[20px] border border-slate-200/80 p-5 soft-shadow space-y-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="font-display font-bold text-lg text-slate-950">Give Someone a Role (Users & Roles)</h2>
+                <p class="text-xs text-slate-500">
+                  ${
+                    state.activeRole === 'owner'
+                      ? 'As Owner, you can assign roles to team members.'
+                      : 'As Admin, you can assign Admin, Stock Manager, and Order Manager roles (Owner role is restricted).'
+                  }
+                </p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-[#F4F7FC] border border-slate-200/80 space-y-2 min-w-[260px]">
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <span class="font-bold text-slate-800">🔒 Only Me Can Get Owner</span>
+                  <button
+                    type="button"
+                    onclick="toggleExclusiveOwnerLock()"
+                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                      state.exclusiveOwnerOnlyMe
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-white text-slate-700 border border-slate-300'
+                    }"
+                  >
+                    ${state.exclusiveOwnerOnlyMe ? 'ON (Locked)' : 'OFF'}
+                  </button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <input
+                    id="exclusiveOwnerEmailInput"
+                    type="email"
+                    value="${escapeHtml(authorizedOwnerEmail)}"
+                    placeholder="your-email@example.com"
+                    class="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] flex-1"
+                  />
+                  <button
+                    type="button"
+                    onclick="saveExclusiveOwnerEmail()"
+                    class="h-8 px-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-semibold"
+                  >
+                    Set Me
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <form onsubmit="assignRoleToUser(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div class="sm:col-span-5">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">User Email</label>
+                <input
+                  id="roleTargetEmail"
+                  type="email"
+                  list="knownUsersList"
+                  required
+                  placeholder="user@example.com"
+                  class="w-full h-10 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs"
+                />
+                <datalist id="knownUsersList">
+                  ${state.users.map((u) => `<option value="${escapeHtml(u.email)}"></option>`).join('')}
+                </datalist>
+              </div>
+              <div class="sm:col-span-4">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Role to Give</label>
+                <select id="roleTargetSelect" class="w-full h-10 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-semibold">
+                  ${assignableRoles.map((r) => `<option value="${r}">${r}</option>`).join('')}
+                </select>
+              </div>
+              <div class="sm:col-span-3">
+                <button type="submit" class="w-full h-10 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold">
+                  Give Role
+                </button>
+              </div>
+            </form>
+
+            <div class="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
+              ${state.users.map((u) => `
+                <div class="p-3.5 bg-white flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div>
+                    <div class="font-bold text-slate-900">${escapeHtml(u.fullName || u.email)}</div>
+                    <div class="text-slate-500">${escapeHtml(u.email)}</div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    ${
+                      u.roles.length === 0
+                        ? '<span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold">customer</span>'
+                        : u.roles.map((r) => `
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 font-bold">
+                              <span>${escapeHtml(r)}</span>
+                              ${
+                                (r !== 'owner' || state.activeRole === 'owner')
+                                  ? `<button type="button" onclick="revokeRoleFromUser('${u.id}', '${r}')" class="text-rose-600 hover:text-rose-800 font-extrabold" title="Revoke role">×</button>`
+                                  : ''
+                              }
+                            </span>
+                          `).join('')
+                    }
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      return '';
+    }
+
+    // Footer with payment badges and Supabase config trigger
+    function renderFooter() {
+      return `
+        <footer class="bg-[#090D16] text-slate-300 border-t border-slate-800/80 mt-auto">
+          <div class="max-w-[1280px] mx-auto px-4 sm:px-6 py-8">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div class="space-y-2">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
+                    </svg>
+                  </div>
+                  <span class="font-display font-extrabold text-base text-white tracking-tight">BLUE VOLT</span>
+                </div>
+                <p class="text-xs text-slate-400">Trusted Digital Gaming Store in Bangladesh.</p>
+                <p class="text-[11px] text-slate-500">© 2026 BLUE VOLT. All rights reserved.</p>
+              </div>
+
+              <div class="space-y-2">
+                <div class="text-xs font-semibold text-slate-300">Payment Methods:</div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-3 py-1 rounded-md bg-white text-[#E2136E] font-extrabold text-xs">bKash</span>
+                  <span class="px-3 py-1 rounded-md bg-white text-[#F15A22] font-extrabold text-xs">Nagad</span>
+                  <span class="px-3 py-1 rounded-md bg-[#FBBF24] text-slate-950 font-extrabold text-xs">Upay</span>
+                  <span class="px-3 py-1 rounded-md bg-[#8B3DFF] text-white font-extrabold text-xs">Rocket</span>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                <button type="button" onclick="navigate('discord')" class="hover:text-white transition">Discord Items</button>
+                <button type="button" onclick="navigate('support')" class="hover:text-white transition">Terms of Service</button>
+                <button type="button" onclick="navigate('support')" class="hover:text-white transition">Privacy Policy</button>
+                <button type="button" onclick="navigate('support')" class="hover:text-white transition">Refund Policy</button>
+                <button type="button" onclick="navigate('support')" class="hover:text-white transition">Contact Us</button>
+                <button
+                  type="button"
+                  onclick="openSupabaseModal()"
+                  class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition"
+                >
+                  ⚙️ Supabase Config
+                </button>
+              </div>
+            </div>
+          </div>
+        </footer>
+      `;
+    }
+
+    // Auth modal, Supabase config modal, and toast overlay
+    function renderModalsAndToast() {
+      let modals = '';
+
+      if (state.authModal) {
+        const isSignup = state.authModal === 'signup';
+        modals += `
+          <div class="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="bg-white rounded-[22px] max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 anim-pop-in">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-extrabold text-xl text-slate-950">${isSignup ? 'Create BLUE VOLT Account' : 'Login to BLUE VOLT'}</h2>
+                <button type="button" onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+              </div>
+              <form onsubmit="handleAuthSubmit(event, '${state.authModal}')" class="space-y-3.5">
+                ${
+                  isSignup
+                    ? `<div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                        <input id="authFullName" type="text" required placeholder="Your name" class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm" />
+                      </div>`
+                    : ''
+                }
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                  <input id="authEmail" type="email" required placeholder="you@example.com" class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                  <input id="authPassword" type="password" required minlength="6" placeholder="••••••••" class="w-full h-10 px-3.5 rounded-xl border border-slate-200 bg-[#F4F7FC] text-sm" />
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-display font-bold text-sm">
+                  ${isSignup ? 'Sign Up' : 'Login'}
+                </button>
+              </form>
+              <div class="text-center text-xs text-slate-500">
+                ${
+                  isSignup
+                    ? `Already have an account? <button type="button" onclick="openAuthModal('login')" class="text-brand-600 font-semibold">Login</button>`
+                    : `Need an account? <button type="button" onclick="openAuthModal('signup')" class="text-brand-600 font-semibold">Sign Up</button>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.supabaseModalOpen) {
+        modals += `
+          <div class="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="bg-white rounded-[22px] max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 anim-pop-in">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-extrabold text-lg text-slate-950">Supabase Connection Settings</h2>
+                <button type="button" onclick="closeSupabaseModal()" class="text-slate-400 hover:text-slate-700 text-lg">✕</button>
+              </div>
+              <p class="text-xs text-slate-600">
+                Paste your Supabase Project URL and Anon Public Key to connect live Supabase Auth & Postgres tables.
+              </p>
+              <form onsubmit="saveSupabaseConfig(event)" class="space-y-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Project URL</label>
+                  <input id="sbUrlInput" type="url" value="${escapeHtml(state.supabaseUrl || '')}" placeholder="https://xxxx.supabase.co" class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Anon Key</label>
+                  <input id="sbKeyInput" type="text" value="${escapeHtml(state.supabaseAnonKey || '')}" placeholder="eyJhbGci..." class="w-full h-9 px-3 rounded-xl border border-slate-200 bg-[#F4F7FC] text-xs font-mono" />
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold">
+                  Save Supabase Keys
+                </button>
+              </form>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.toast) {
+        const bg = state.toast.type === 'error' ? 'bg-rose-600' : 'bg-slate-900';
+        modals += `
+          <div class="fixed bottom-5 right-5 z-50 ${bg} text-white px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 anim-pop-in">
+            <span>${state.toast.type === 'error' ? '⚠️' : '✓'}</span>
+            <span>${escapeHtml(state.toast.message)}</span>
+          </div>
+        `;
+      }
+
+      return modals;
+    }
+
+    function renderStatusBadge(status) {
+      const styles = {
+        Pending: 'bg-amber-50 text-amber-800 border-amber-200',
+        Processing: 'bg-sky-50 text-sky-700 border-sky-200',
+        Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        Rejected: 'bg-rose-50 text-rose-700 border-rose-200',
+        Refunded: 'bg-slate-100 text-slate-700 border-slate-200',
+      };
+      return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${styles[status] || styles.Pending}">${escapeHtml(status)}</span>`;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Interactive action handlers
+    function toggleQuickMenu() {
+      state.quickMenuOpen = !state.quickMenuOpen;
+      render();
+    }
+
+    function toggleViewMode() {
+      state.viewMode = state.viewMode === 'pc' ? 'responsive' : 'pc';
+      saveState();
+      render();
+    }
+
+    function handleSearchInput(val) {
+      state.searchQuery = val;
+      if (state.activeRoute !== 'marketplace') {
+        state.activeRoute = 'marketplace';
+      }
+      saveState();
+      render();
+    }
+
+    function quickSelectRobux(amount) {
+      window.__selectedRobuxAmount = Number(amount);
+      navigate('robux');
+    }
+
+    function setRobuxCalcAmount(val, skipFullRender = false) {
+      const num = Math.max(1, Math.min(100000, Number(val) || 0));
+      window.__selectedRobuxAmount = num;
+      if (skipFullRender) {
+        const qtyEl = document.getElementById('robuxSummaryQty');
+        const totEl = document.getElementById('robuxSummaryTotal');
+        if (qtyEl) qtyEl.textContent = `${num.toLocaleString('en-US')} Robux`;
+        if (totEl) totEl.textContent = formatBDT(Math.round(num * Number(state.robux.ratePerRobux)));
+        return;
+      }
+      render();
+    }
+
+    function proceedRobuxToCheckout() {
+      const status = getRobuxStockStatus();
+      if (!status.available) {
+        showToast('Robux is currently out of stock.', 'error');
+        return;
+      }
+      const qty = Math.max(10, Number(window.__selectedRobuxAmount || 800));
+      if (qty > Number(state.robux.robuxStock)) {
+        showToast(`Only ${Number(state.robux.robuxStock).toLocaleString('en-US')} Robux available in stock.`, 'error');
+        return;
+      }
+      state.cart = state.cart.filter((i) => i.itemType !== 'robux');
+      addToCart({
+        key: `robux-${qty}`,
+        itemType: 'robux',
+        productId: null,
+        category: 'Robux',
+        title: `${qty.toLocaleString('en-US')} Robux Top-Up`,
+        quantity: qty,
+        unitPriceBdt: Number(state.robux.ratePerRobux),
+        requiresRobloxUsername: true,
+        requiresDiscordTag: false,
+      });
+      navigate('checkout');
+    }
+
+    function addProductToCart(productId) {
+      const prod = state.products.find((p) => p.id === productId);
+      if (!prod || Number(prod.stockQuantity) <= 0) {
+        showToast('This product is out of stock.', 'error');
+        return;
+      }
+      addToCart({
+        key: `prod-${prod.id}`,
+        itemType: 'product',
+        productId: prod.id,
+        category: prod.category,
+        title: prod.title,
+        quantity: 1,
+        unitPriceBdt: Number(prod.priceBdt),
+        requiresRobloxUsername: Boolean(prod.requiresRobloxUsername),
+        requiresDiscordTag: Boolean(prod.requiresDiscordTag || prod.category === 'Discord Items'),
+      });
+    }
+
+    function buyNowProduct(productId) {
+      const prod = state.products.find((p) => p.id === productId);
+      if (!prod || Number(prod.stockQuantity) <= 0) {
+        showToast('This product is out of stock.', 'error');
+        return;
+      }
+      state.cart = [
+        {
+          key: `prod-${prod.id}`,
+          itemType: 'product',
+          productId: prod.id,
+          category: prod.category,
+          title: prod.title,
+          quantity: 1,
+          unitPriceBdt: Number(prod.priceBdt),
+          requiresRobloxUsername: Boolean(prod.requiresRobloxUsername),
+          requiresDiscordTag: Boolean(prod.requiresDiscordTag || prod.category === 'Discord Items'),
+        },
+      ];
+      saveState();
+      navigate('checkout');
+    }
+
+    function selectCheckoutMethod(methodId) {
+      window.__selectedPaymentMethodId = methodId;
+      render();
+    }
+
+    function submitManualOrder(e) {
+      e.preventDefault();
+      if (state.cart.length === 0) {
+        showToast('Your cart is empty.', 'error');
+        return;
+      }
+      const enabledMethods = state.paymentMethods.filter((m) => m.isEnabled);
+      const selectedMethodId = window.__selectedPaymentMethodId || (enabledMethods[0] && enabledMethods[0].id);
+      const method = enabledMethods.find((m) => m.id === selectedMethodId);
+      if (!method) {
+        showToast('Please select an enabled payment method.', 'error');
+        return;
+      }
+
+      const trxId = (document.getElementById('checkoutTrxId')?.value || '').trim().toUpperCase();
+      const senderLast4 = (document.getElementById('checkoutLast4')?.value || '').trim();
+      const robloxUser = (document.getElementById('checkoutRobloxUser')?.value || '').trim();
+      const discordUser = (document.getElementById('checkoutDiscordUser')?.value || '').trim();
+
+      if (trxId.length < 4) {
+        showToast('Enter a valid Transaction ID (TrxID).', 'error');
+        return;
+      }
+      if (!/^[0-9]{4}$/.test(senderLast4)) {
+        showToast('Sender last 4 digits must be exactly 4 numeric digits.', 'error');
+        return;
+      }
+      const duplicateTrx = state.orders.some((o) => o.trxId.toUpperCase() === trxId && o.status !== 'Rejected');
+      if (duplicateTrx) {
+        showToast('Duplicate Transaction ID detected. Each order requires a unique TrxID.', 'error');
+        return;
+      }
+
+      const customerEmail = state.currentUser ? state.currentUser.email : 'guest@bluevolt.bd';
+      const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+      for (const item of state.cart) {
+        const lineTotal = Math.round(Number(item.unitPriceBdt) * Number(item.quantity));
+        const orderNumber = 'BV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        state.orders.unshift({
+          id: 'ord-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5),
+          orderNumber,
+          customerEmail,
+          itemType: item.itemType,
+          productId: item.productId || null,
+          itemTitle: item.title,
+          quantity: Number(item.quantity),
+          unitRateBdt: Number(item.unitPriceBdt),
+          totalAmountBdt: lineTotal,
+          paymentMethodId: method.id,
+          paymentMethodName: method.name,
+          trxId,
+          senderLast4,
+          robloxUsername: item.requiresRobloxUsername ? robloxUser : null,
+          discordUsername: (item.requiresDiscordTag || item.category === 'Discord Items') ? discordUser : null,
+          status: 'Pending',
+          internalNote: '',
+          createdAt: nowStr,
+        });
+
+        if (item.itemType === 'robux') {
+          state.robux.robuxStock = Math.max(0, Number(state.robux.robuxStock) - Number(item.quantity));
+        } else if (item.productId) {
+          const prod = state.products.find((p) => p.id === item.productId);
+          if (prod) {
+            prod.stockQuantity = Math.max(0, Number(prod.stockQuantity) - Number(item.quantity));
+          }
+        }
+      }
+
+      state.cart = [];
+      saveState();
+      showToast('Order submitted! Status is now Pending verification.', 'success');
+      navigate('orders');
+    }
+
+    function setDemoRole(role) {
+      state.activeRole = role;
+      if (!canAccessAdminTab(state.activeAdminTab)) {
+        const allowed = getAllowedAdminTabsForCurrentRole();
+        if (allowed.length) state.activeAdminTab = allowed[0].id;
+      }
+      saveState();
+      render();
+    }
+
+    function switchAdminTab(tab) {
+      if (!canAccessAdminTab(tab)) {
+        showToast('Access denied for your current role.', 'error');
+        return;
+      }
+      state.activeAdminTab = tab;
+      saveState();
+      render();
+    }
+
+    function setAdminOrderFilter(kind, value) {
+      if (kind === 'search') window.__adminOrderSearch = value;
+      if (kind === 'status') window.__adminOrderStatusFilter = value;
+      render();
+    }
+
+    function updateOrderStatus(orderId, newStatus) {
+      const order = state.orders.find((o) => o.id === orderId);
+      if (!order) return;
+      order.status = newStatus;
+      saveState();
+      showToast(`Order ${order.orderNumber} updated to ${newStatus}.`, 'success');
+      render();
+    }
+
+    function addMarketplaceProduct(e) {
+      e.preventDefault();
+      const title = document.getElementById('newProdTitle').value.trim();
+      const category = document.getElementById('newProdCategory').value;
+      const priceBdt = Number(document.getElementById('newProdPrice').value);
+      const stockQuantity = Number(document.getElementById('newProdStock').value);
+      const ratingCount = Number(document.getElementById('newProdRatingCount').value || 0);
+      const logoUrl = document.getElementById('newProdLogo').value.trim();
+      const description = document.getElementById('newProdDesc').value.trim();
+
+      if (!logoUrl) {
+        showToast('Product Logo URL is required.', 'error');
+        return;
+      }
+
+      state.products.unshift({
+        id: 'prod-' + Date.now(),
+        title,
+        category,
+        priceBdt,
+        stockQuantity,
+        lowStockThreshold: 5,
+        ratingCount,
+        logoUrl,
+        imageUrl: logoUrl,
+        description,
+        isActive: true,
+        isFeatured: true,
+        requiresRobloxUsername: title.toLowerCase().includes('robux') || title.toLowerCase().includes('roblox'),
+        requiresDiscordTag: category === 'Discord Items' || title.toLowerCase().includes('discord'),
+      });
+      saveState();
+      showToast('Product added to marketplace.', 'success');
+      render();
+    }
+
+    function toggleProductActive(productId) {
+      const p = state.products.find((x) => x.id === productId);
+      if (!p) return;
+      p.isActive = !p.isActive;
+      saveState();
+      render();
+    }
+
+    function deleteProduct(productId) {
+      state.products = state.products.filter((x) => x.id !== productId);
+      saveState();
+      showToast('Product deleted.', 'success');
+      render();
+    }
+
+    function saveRobuxStockSettings() {
+      state.robux.robuxStock = Math.max(0, Number(document.getElementById('robuxStockInput').value || 0));
+      state.robux.lowStockThreshold = Math.max(0, Number(document.getElementById('robuxLowThresholdInput').value || 0));
+      state.robux.forceOutOfStock = document.getElementById('robuxForceOosInput').value === 'true';
+      state.robux.restockAt = document.getElementById('robuxRestockAtInput').value || '';
+      saveState();
+      showToast('Robux stock and timer updated.', 'success');
+      render();
+    }
+
+    function toggleRobuxOutOfStockQuick() {
+      state.robux.forceOutOfStock = !state.robux.forceOutOfStock;
+      saveState();
+      showToast(
+        state.robux.forceOutOfStock
+          ? 'Robux marked as Out of Stock.'
+          : 'Robux Out of Stock lock removed.',
+        'success'
+      );
+      render();
+    }
+
+    function applyQuickStockTimer(minutes) {
+      if (!minutes || minutes <= 0) {
+        state.robux.restockAt = '';
+        saveState();
+        showToast('Stock timer cleared.', 'success');
+        render();
+        return;
+      }
+      const future = new Date(Date.now() + minutes * 60 * 1000);
+      const localIso = new Date(future.getTime() - future.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+      state.robux.restockAt = localIso;
+      saveState();
+      showToast(`Stock timer set for +${minutes}m.`, 'success');
+      render();
+    }
+
+    function saveProductStockAndRating(productId) {
+      const p = state.products.find((x) => x.id === productId);
+      if (!p) return;
+      p.stockQuantity = Math.max(0, Number(document.getElementById(`stockQty_${productId}`).value || 0));
+      p.ratingCount = Math.max(0, Number(document.getElementById(`rateCnt_${productId}`).value || 0));
+      saveState();
+      showToast(`Updated stock and exact rate count for ${p.title}.`, 'success');
+      render();
+    }
+
+    function savePaymentMethod(methodId) {
+      if (!canManagePaymentNumbers()) {
+        showToast('Only the Owner can edit payment numbers or toggle methods.', 'error');
+        return;
+      }
+      const m = state.paymentMethods.find((x) => x.id === methodId);
+      if (!m) return;
+      m.isEnabled = document.getElementById(`pmEnabled_${methodId}`).checked;
+      m.receivingNumber = document.getElementById(`pmNum_${methodId}`).value.trim();
+      m.accountType = document.getElementById(`pmType_${methodId}`).value;
+      m.instructionNote = document.getElementById(`pmNote_${methodId}`).value.trim();
+      saveState();
+      showToast(`${m.name} payment details saved.`, 'success');
+      render();
+    }
+
+    function updateRobuxRate(e) {
+      e.preventDefault();
+      const nextRate = Number(document.getElementById('newRobuxRateInput').value);
+      if (!(nextRate > 0)) {
+        showToast('Rate must be greater than 0.', 'error');
+        return;
+      }
+      const oldRate = Number(state.robux.ratePerRobux);
+      state.robux.ratePerRobux = nextRate;
+      state.robux.history.unshift({
+        id: 'rh-' + Date.now(),
+        oldRate,
+        newRate: nextRate,
+        changedBy: state.currentUser ? state.currentUser.email : `${state.activeRole}@bluevolt.bd`,
+        changedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      });
+      saveState();
+      showToast(`Robux rate updated to ${formatBDT(nextRate)} per Robux.`, 'success');
+      render();
+    }
+
+    function assignRoleToUser(e) {
+      e.preventDefault();
+      if (!canAssignRoles()) {
+        showToast('You do not have permission to assign roles.', 'error');
+        return;
+      }
+      const email = document.getElementById('roleTargetEmail').value.trim().toLowerCase();
+      const role = document.getElementById('roleTargetSelect').value;
+
+      if (role === 'owner') {
+        if (state.activeRole !== 'owner') {
+          showToast('Only an Owner can assign the Owner role.', 'error');
+          return;
+        }
+        if (!canReceiveOwnerRole(email)) {
+          showToast(`Blocked: "Only Me Can Get Owner" is ON (${state.exclusiveOwnerEmail || 'owner@bluevolt.bd'}).`, 'error');
+          return;
+        }
+      }
+
+      let user = state.users.find((u) => u.email.toLowerCase() === email);
+      if (!user) {
+        user = { id: 'u-' + Date.now(), email, fullName: email.split('@')[0], roles: [] };
+        state.users.push(user);
+      }
+      if (!user.roles.includes(role)) {
+        user.roles.push(role);
+      }
+      saveState();
+      showToast(`Assigned ${role} role to ${email}.`, 'success');
+      render();
+    }
+
+    function toggleExclusiveOwnerLock() {
+      if (state.activeRole !== 'owner') {
+        showToast('Only the Owner can change the Owner lock setting.', 'error');
+        return;
+      }
+      state.exclusiveOwnerOnlyMe = !state.exclusiveOwnerOnlyMe;
+      if (state.exclusiveOwnerOnlyMe) {
+        const myEmail = (state.currentUser && state.currentUser.email) || state.exclusiveOwnerEmail || 'owner@bluevolt.bd';
+        state.exclusiveOwnerEmail = myEmail.trim().toLowerCase();
+        state.users.forEach((u) => {
+          if (u.roles.includes('owner') && u.email.toLowerCase() !== state.exclusiveOwnerEmail) {
+            u.roles = u.roles.filter((r) => r !== 'owner');
+          }
+        });
+      }
+      saveState();
+      showToast(
+        state.exclusiveOwnerOnlyMe
+          ? `Exclusive Owner lock enabled for ${state.exclusiveOwnerEmail}.`
+          : 'Exclusive Owner lock turned off.',
+        'success'
+      );
+      render();
+    }
+
+    function saveExclusiveOwnerEmail() {
+      if (state.activeRole !== 'owner') {
+        showToast('Only the Owner can update the authorized Owner email.', 'error');
+        return;
+      }
+      const inputVal = (document.getElementById('exclusiveOwnerEmailInput')?.value || '').trim().toLowerCase();
+      if (!inputVal) {
+        showToast('Enter your email address first.', 'error');
+        return;
+      }
+      state.exclusiveOwnerEmail = inputVal;
+      state.exclusiveOwnerOnlyMe = true;
+      let ownerUser = state.users.find((u) => u.email.toLowerCase() === inputVal);
+      if (!ownerUser) {
+        ownerUser = { id: 'u-' + Date.now(), email: inputVal, fullName: inputVal.split('@')[0], roles: ['owner'] };
+        state.users.unshift(ownerUser);
+      } else if (!ownerUser.roles.includes('owner')) {
+        ownerUser.roles.push('owner');
+      }
+      state.users.forEach((u) => {
+        if (u.email.toLowerCase() !== inputVal && u.roles.includes('owner')) {
+          u.roles = u.roles.filter((r) => r !== 'owner');
+        }
+      });
+      saveState();
+      showToast(`Owner role locked exclusively to ${inputVal}.`, 'success');
+      render();
+    }
+
+    function revokeRoleFromUser(userId, role) {
+      if (role === 'owner' && state.activeRole !== 'owner') {
+        showToast('Only an Owner can revoke an Owner role.', 'error');
+        return;
+      }
+      const user = state.users.find((u) => u.id === userId);
+      if (!user) return;
+      user.roles = user.roles.filter((r) => r !== role);
+      saveState();
+      showToast(`Removed ${role} from ${user.email}.`, 'success');
+      render();
+    }
+
+    function openAuthModal(mode) {
+      state.authModal = mode;
+      render();
+    }
+
+    function closeAuthModal() {
+      state.authModal = null;
+      render();
+    }
+
+    async function handleAuthSubmit(e, mode) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim().toLowerCase();
+      const password = document.getElementById('authPassword').value;
+      const fullName = mode === 'signup' ? document.getElementById('authFullName').value.trim() : email.split('@')[0];
+
+      if (supabaseClient) {
+        try {
+          const res =
+            mode === 'signup'
+              ? await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName } } })
+              : await supabaseClient.auth.signInWithPassword({ email, password });
+          if (res.error) {
+            showToast(res.error.message, 'error');
+            return;
+          }
+        } catch (err) {
+          showToast('Supabase authentication request failed.', 'error');
+          return;
+        }
+      }
+
+      let existing = state.users.find((u) => u.email.toLowerCase() === email);
+      if (!existing) {
+        existing = { id: 'u-' + Date.now(), email, fullName, roles: [] };
+        state.users.push(existing);
+      }
+      if (state.exclusiveOwnerOnlyMe && existing.roles.includes('owner') && !canReceiveOwnerRole(existing.email)) {
+        existing.roles = existing.roles.filter((r) => r !== 'owner');
+      }
+      state.currentUser = { email: existing.email, fullName: existing.fullName };
+      if (existing.roles.includes('owner') && canReceiveOwnerRole(existing.email)) state.activeRole = 'owner';
+      else if (existing.roles.includes('admin')) state.activeRole = 'admin';
+      else if (existing.roles.includes('stock_manager')) state.activeRole = 'stock_manager';
+      else if (existing.roles.includes('order_manager')) state.activeRole = 'order_manager';
+      else state.activeRole = 'customer';
+
+      state.authModal = null;
+      saveState();
+      showToast(`Signed in as ${existing.email} (${state.activeRole}).`, 'success');
+      render();
+    }
+
+    async function logoutUser() {
+      if (supabaseClient) {
+        try {
+          await supabaseClient.auth.signOut();
+        } catch {
+          // Ignore network sign-out error in preview mode
+        }
+      }
+      state.currentUser = null;
+      state.activeRole = 'customer';
+      saveState();
+      showToast('Logged out.', 'success');
+      render();
+    }
+
+    function openSupabaseModal() {
+      state.supabaseModalOpen = true;
+      render();
+    }
+
+    function closeSupabaseModal() {
+      state.supabaseModalOpen = false;
+      render();
+    }
+
+    function saveSupabaseConfig(e) {
+      e.preventDefault();
+      state.supabaseUrl = document.getElementById('sbUrlInput').value.trim();
+      state.supabaseAnonKey = document.getElementById('sbKeyInput').value.trim();
+      initSupabaseIfConfigured();
+      state.supabaseModalOpen = false;
+      saveState();
+      showToast('Supabase configuration saved.', 'success');
+      render();
+    }
+
+    function copyText(text, successMsg) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(() => {});
+        }
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        // Fallback if clipboard API is restricted
+      }
+      showToast(successMsg, 'success');
+    }
+
+    // Root render function
+    function render() {
+      try {
+        const app = document.getElementById('app');
+        if (!app) return;
+        const isPcMode = state.viewMode === 'pc';
+        app.className = isPcMode
+          ? 'flex-1 flex flex-col w-full min-w-[1280px]'
+          : 'flex-1 flex flex-col w-full max-w-full overflow-x-hidden';
+        let bodyHtml = '';
+        if (state.activeRoute === 'home') bodyHtml = renderHomePage();
+        else if (state.activeRoute === 'robux') bodyHtml = renderRobuxPage();
+        else if (state.activeRoute === 'discord') bodyHtml = renderDiscordPage();
+        else if (state.activeRoute === 'marketplace') bodyHtml = renderMarketplacePage();
+        else if (state.activeRoute === 'product') bodyHtml = renderProductDetailPage();
+        else if (state.activeRoute === 'checkout') bodyHtml = renderCheckoutPage();
+        else if (state.activeRoute === 'orders') bodyHtml = renderOrdersPage();
+        else if (state.activeRoute === 'support') bodyHtml = renderSupportPage();
+        else if (state.activeRoute === 'admin') bodyHtml = renderAdminPage();
+        else bodyHtml = renderHomePage();
+
+        app.innerHTML = renderNavbar() + bodyHtml + renderFooter() + renderModalsAndToast();
+      } catch (err) {
+        console.error('Render error:', err);
+      }
+    }
+
+    // Live countdown ticker without interrupting active form typing
+    setInterval(() => {
+      state.nowTick = Date.now();
+      const activeTag = document.activeElement && document.activeElement.tagName;
+      const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+      if (!isTyping && state.robux.restockAt && (state.activeRoute === 'home' || state.activeRoute === 'robux' || state.activeRoute === 'admin')) {
+        render();
+      }
+    }, 1000);
+
+    render();
+  </script>
+</body>
+</html>
